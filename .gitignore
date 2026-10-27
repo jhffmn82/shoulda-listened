@@ -1,0 +1,5 @@
+# API keys and tokens (tools/publish.py reads the GitHub token from here).
+.secrets/
+__pycache__/
+# Play-test screenshots from tools/playtest.py.
+out/

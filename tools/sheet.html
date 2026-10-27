@@ -1,0 +1,26 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Sprite sheet</title>
+<style>body{background:#202030;margin:0}canvas{image-rendering:pixelated;width:1536px;height:896px}</style></head>
+<body><canvas id="c" width="384" height="224"></canvas>
+<script src="../js/core.js"></script><script src="../js/font.js"></script><script src="../js/art.js"></script>
+<script src="../js/figures.js"></script><script src="../js/questions.js"></script>
+<script>
+// A contact sheet of every sprite, for checking the art (tools/playtest.py --sheet screenshots it).
+buildArt(location.hash === '#parent');
+const c = document.getElementById('c'), x = c.getContext('2d');
+x.imageSmoothingEnabled = false;
+x.fillStyle = '#3a3a58'; x.fillRect(0, 0, 384, 224);
+let px = 4, py = 4, rowH = 0;
+function put(img, ax, ay) { if (px + img.width > 380) { px = 4; py += rowH + 4; rowH = 0; } x.drawImage(img, px, py); px += img.width + 3; rowH = Math.max(rowH, img.height); }
+const HS = Sprites.hero;
+for (const f of [...HS.walk, ...HS.idle, ...HS.kick, ...HS.hands, HS.hit, HS.fall, HS.dead, ...HS.cheer]) put(f.c);
+for (const k in Sprites.gunman) put(Sprites.gunman[k].c);
+const car = makeCar(location.hash === '#taxi' ? 'taxi' : 'black');
+put(car.open); put(makeCar('taxi').shut);
+for (const w of Wheels) put(w);
+for (const k of ['calc','coffee','keeper','cash','house','can','canDown','lid','flash','hydrant','meter','newsbox','payphone','mailbox','lamp','manhole','grate']) put(Sprites[k]);
+put(Sprites.rat[0]);
+Font.draw(x, 'If 3x + 7 = 22, what is x^2? (x^3)^2 · x^{12} √25 π 45° ≤ ≥ ≠ ×÷ $5 50%', 4, 214, '#fff');
+window.selfTest = Questions.selfTest(200);
+window.done = true;
+</script></body></html>
