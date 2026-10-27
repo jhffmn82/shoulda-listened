@@ -4,7 +4,7 @@ The token is read from .secrets/github-token.txt (a fine-grained token for this 
 Pages read/write) and never printed or written anywhere. Git's credential manager is bypassed, since it
 can't reach the Windows credential vault from Claude's shell.
 
-    python -I tools/publish.py
+    python tools/publish.py
 """
 import base64, json, os, pathlib, subprocess, sys, urllib.error, urllib.request
 

@@ -270,14 +270,17 @@ const Figures = (() => {
   };
 
   F.bars = () => {
-    const names = pick([['MON', 'TUE', 'WED', 'THU', 'FRI'], ['A', 'B', 'C', 'D', 'E'], ['JAN', 'FEB', 'MAR', 'APR', 'MAY']]);
+    // One- or two-letter labels, so they fit under the bars.
+    const [names, where] = pick([[['MO', 'TU', 'WE', 'TH', 'FR'], 'day'], [['A', 'B', 'C', 'D', 'E'], 'store'], [['1', '2', '3', '4', '5'], 'week']]);
     const vals = names.map(() => randInt(2, 9) * 5);
     let i, j; do { i = randInt(0, 4); j = randInt(0, 4); } while (vals[i] <= vals[j]);
     const what = pick(['slices of pizza sold', 'cars that drove by', 'quizzes failed']);
+    const DAYS = { MO: 'Monday', TU: 'Tuesday', WE: 'Wednesday', TH: 'Thursday', FR: 'Friday' };
+    const at = k => where === 'day' ? DAYS[names[k]] : `${where} ${names[k]}`;
     return {
-      topic: 'DATA', text: `The bar graph shows the number of ${what} each day. How many more on ${names[i]} than on ${names[j]}?`,
+      topic: 'DATA', text: `The bar graph shows the number of ${what} by ${where}. How many more for ${at(i)} than for ${at(j)}?`,
       ...numeric(vals[i] - vals[j], [vals[i] + vals[j], vals[i], vals[j], vals[i] - vals[j] + 5]),
-      steps: [`${names[i]}: ${vals[i]}.  ${names[j]}: ${vals[j]}.`, `${vals[i]} - ${vals[j]} = ${vals[i] - vals[j]}`],
+      steps: [`${at(i)}: ${vals[i]}.  ${at(j)}: ${vals[j]}.`, `${vals[i]} - ${vals[j]} = ${vals[i] - vals[j]}`],
       fig: (c, w, h) => {
         const base = h - 10, top = 50, bw = Math.floor((w - 20) / 5);
         for (let v = 0; v <= top; v += 10) { const y = Math.round(base - v / top * (base - 4)); line(c, 16, y, w - 1, y, GRID); label(c, String(v), 8, y + 1, DIM); }

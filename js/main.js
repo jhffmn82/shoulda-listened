@@ -4,7 +4,6 @@
 (function () {
   const cv = document.getElementById('game'), ctx = cv.getContext('2d');
   ctx.imageSmoothingEnabled = false;
-  buildArt(Game.parent);
 
   const touch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
   if (touch) document.body.classList.add('touch');
@@ -62,7 +61,7 @@
     Game.draw(ctx);
     requestAnimationFrame(frame);
   }
-  Game.start();
-  requestAnimationFrame(frame);
+  // The PixelLab atlas is an embedded image: wait for it, then build every sprite.
+  Atlas.load().then(() => { buildArt(Game.parent); Game.start(); requestAnimationFrame(frame); });
   window.__game = { Game, Play, Attract, Entry, Questions, Input };
 })();

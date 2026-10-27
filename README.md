@@ -44,18 +44,35 @@ The questions are original, written to the SAT's blueprint: Algebra, Advanced Ma
 
 Diagram questions draw their figure in pixel art: triangles, parallel lines, right-triangle trig, circles, boxes, similar triangles, graphed lines and parabolas, two-line systems, scatterplots, bar graphs and two-way tables.
 
+## The art
+
+Everything you see in the game was made in [PixelLab](https://www.pixellab.ai) through its API: the hero, the gunman (and his water-pistol twin for Parent Mode), the sedan and the taxi, the props and items, the night skyline, the next block over, and fourteen close-up storefronts at the hero's scale (liquor store, bodega, pizza place, video store, laundromat, barber, pawn shop, arcade, Chinese takeout, a graffiti-covered gate, brownstone stoops, home, a fenced lot, an alley). The street scrolls in layers: sky, the next block at 0.6 speed under a haze, then the storefronts.
+
+```
+python tools/pixellab.py balance              # generations left
+python tools/pixellab.py stills n-pizza --takes 2
+python tools/contact.py out/takes.png n-pizza
+python tools/pixellab.py pick n-pizza <seed>
+python tools/pixellab.py pack                 # rebuilds js/data/sprites.js
+```
+
+The key goes in `.secrets/pixellab-api-key.txt` (git-ignored) or `PIXELLAB_API_KEY`.
+
 ## Files
 
 | Path | What |
 |---|---|
 | `js/core.js` | Screen size, helpers, controls, saved settings |
 | `js/font.js` | The arcade font (drawn here) and big gradient title letters |
-| `js/art.js` | Stand-in sprites drawn in code, used until `js/data/sprites.js` has PixelLab art |
+| `js/data/sprites.js` | Every sprite and the street, made in PixelLab, packed into one embedded atlas |
+| `js/art.js` | Loads the atlas into sprites; also code-drawn stand-ins, used if the atlas is missing |
 | `js/figures.js`, `js/questions.js` | The question generators |
 | `js/sound.js` | Synthesized music, effects and the announcer |
 | `js/world.js` | The street: sky, skyline, bridge, rooftops, storefronts, stoops, lots |
 | `js/game.js` | Attract mode, play, the quiz, death, continue, stage clear, high scores |
-| `tools/pixellab.py` | Makes the sprites in PixelLab and packs them into `js/data/sprites.js` |
+| `tools/pixellab.py` | Makes the art in PixelLab (stills, animations, the hero's 4-direction character and template walk) and packs `js/data/sprites.js` |
+| `tools/contact.py`, `tools/ruler.py` | Contact sheets of takes for picking, and rulers for reading crop lines |
+| `art/takes`, `art/picked` | Every PixelLab take, and the ones the game uses; `art/calls.jsonl` logs each request |
 | `tools/playtest.py` | Plays every screen in headless Chrome and saves screenshots to `out/` |
 | `tools/publish.py` | Pushes to GitHub and turns on Pages |
 | `ref/concept.webp` | The concept art |

@@ -337,9 +337,10 @@ function buildPeople(parent) {
     figure('hero', { legF: [7, 3], legB: [-7, -3], armF: [118, 172], armB: [104, 166], torso: -6, face: 'scared' }),
     figure('hero', { legF: [5, 6], legB: [-5, -6], armF: [122, 176], armB: [108, 170], torso: -5, face: 'scared', bob: 1 }),
   ];
-  H.hit = figure('hero', { legF: [28, 12], legB: [-6, -24], armF: [-130, -165], armB: [-105, -150], torso: -28, tilt: -15, face: 'hurt' });
-  H.fall = figure('hero', { rot: -55, legF: [22, 14], legB: [2, -12], armF: [150, 175], armB: [120, 150], torso: -12, face: 'hurt' });
-  H.dead = figure('hero', { rot: -90, legF: [10, 8], legB: [-4, 6], armF: [172, 178], armB: [140, 160], torso: 0, face: 'dead' });
+  const hit = figure('hero', { legF: [28, 12], legB: [-6, -24], armF: [-130, -165], armB: [-105, -150], torso: -28, tilt: -15, face: 'hurt' });
+  const fall = figure('hero', { rot: -55, legF: [22, 14], legB: [2, -12], armF: [150, 175], armB: [120, 150], torso: -12, face: 'hurt' });
+  const dead = figure('hero', { rot: -90, legF: [10, 8], legB: [-4, 6], armF: [172, 178], armB: [140, 160], torso: 0, face: 'dead' });
+  H.shot = [hit, hit, hit, fall, fall, fall, dead];
   H.cheer = [
     figure('hero', { legF: [5, 2], legB: [-5, -2], armF: [172, 182], armB: [25, 95], torso: -2, face: 'happy' }),
     figure('hero', { legF: [5, 2], legB: [-5, -2], armF: [160, 200], armB: [25, 95], torso: -2, face: 'happy', bob: 1 }),
@@ -347,11 +348,13 @@ function buildPeople(parent) {
   Sprites.hero = H;
 
   const gun = parent ? 'water' : 'pistol';
+  const aim = mirror(figure('gunman', { waistUp: true, torso: 28, armF: [92, 94], gun, tilt: -26 }));
   Sprites.gunman = {
-    aim: mirror(figure('gunman', { waistUp: true, torso: 28, armF: [92, 94], gun, tilt: -26 })),
-    fire: mirror(figure('gunman', { waistUp: true, torso: 24, armF: [104, 112], gun, tilt: -30 })),
-    nod: mirror(figure('gunman', { waistUp: true, torso: 18, armF: [38, 62], gun, tilt: -4 })),
-    sit: mirror(figure('gunman', { waistUp: true, torso: 0, armF: [20, 40], tilt: 0 })),
+    aim: [aim],
+    fire: [mirror(figure('gunman', { waistUp: true, torso: 24, armF: [104, 112], gun, tilt: -30 })), aim],
+    nod: [mirror(figure('gunman', { waistUp: true, torso: 18, armF: [38, 62], gun, tilt: -4 }))],
+    sit: [mirror(figure('gunman', { waistUp: true, torso: 0, armF: [20, 40], tilt: 0 }))],
+    mx: aim.mx, my: aim.my,
   };
 }
 
@@ -546,7 +549,66 @@ function buildItems() {
   Sprites.grate = pixmap(['kkkkkkkkkkkkkk', 'k.k.k.k.k.k.kk', 'k.k.k.k.k.k.kk', 'kkkkkkkkkkkkkk'], { k: '#2a2a32' }, null);
 }
 
+// ---- The PixelLab art, once tools/pixellab.py pack has made js/data/sprites.js. Without it the code-drawn
+// sprites above stand in.
+const Atlas = {
+  img: null,
+  load() {
+    return new Promise(done => {
+      if (typeof SPRITE_ATLAS === 'undefined' || !SPRITE_ATLAS) return done(false);
+      const i = new Image();
+      i.onload = () => { this.img = i; done(true); };
+      i.onerror = () => done(false);
+      i.src = SPRITE_ATLAS.png;
+    });
+  },
+  has(key) { return !!(this.img && SPRITE_ATLAS.frames[key]); },
+  meta(key) { return SPRITE_ATLAS.frames[key]; },
+  keys(prefix) { return this.img ? Object.keys(SPRITE_ATLAS.frames).filter(k => k.startsWith(prefix)) : []; },
+  frames(key) {
+    const F = this.meta(key), out = [];
+    for (let i = 0; i < F.n; i++) {
+      const c = canvas(F.w, F.h);
+      c.getContext('2d').drawImage(this.img, F.x + i * F.w, F.y, F.w, F.h, 0, 0, F.w, F.h);
+      out.push({ c, ax: F.ax, ay: F.ay });
+    }
+    return out;
+  },
+  image(key) { return this.frames(key)[0].c; },
+};
+
+function buildFromAtlas(parent) {
+  const A = Atlas;
+  Sprites.hero = { walk: A.frames('hero.walk'), idle: A.frames('hero.idle'), hands: A.frames('hero.hands'), kick: A.frames('hero.kick'), shot: A.frames('hero.shot'), cheer: A.frames('hero.cheer') };
+  const g = parent ? 'water' : 'gunman', aim = A.frames(g + '.aim'), m = A.meta(g + '.aim');
+  Sprites.gunman = { aim, sit: aim, fire: A.frames(g + '.fire'), nod: A.frames(g + '.nod'), mx: m.mx, my: m.my };
+  for (const k of ['can', 'hydrant', 'meter', 'newsbox', 'payphone', 'mailbox', 'lamp', 'calc', 'coffee', 'keeper', 'cash']) if (A.has('prop.' + k)) Sprites[k] = A.image('prop.' + k);
+  if (A.has('prop.can-down')) Sprites.canDown = A.image('prop.can-down');
+  if (A.has('prop.rat')) Sprites.rat = [A.image('prop.rat'), A.image('prop.rat')];
+}
+
 function buildArt(parent) {
-  buildPeople(parent);
   if (!Wheels.length) { buildWheels(); buildItems(); }
+  buildPeople(parent);
+  if (Atlas.img) buildFromAtlas(parent);
+  // Where the body lies after the fall, from the anchor: the puddle goes under it.
+  const H = Sprites.hero, last = H.shot[H.shot.length - 1], t = trim(last.c);
+  H.deadCx = Math.round(t.x + t.c.width / 2 - last.ax);
+}
+
+// A car's art: the PixelLab sedan or taxi when there is one, else the code-drawn car.
+// ay is the bottom of the tires; the gunman's waist goes at mount and only shows above the window sill.
+const carCache = {};
+function carArt(color) {
+  if (carCache[color]) return carCache[color];
+  let art;
+  const key = color === 'taxi' ? 'car.taxi' : 'car.sedan';
+  if (Atlas.has(key)) {
+    const m = Atlas.meta(key), img = Atlas.image(key), sedan = Atlas.meta('car.sedan');
+    art = { shut: img, open: null, w: m.w, h: m.h, ay: m.ay, mount: sedan.mount, sill: sedan.sill, wheels: false };
+  } else {
+    const c = makeCar(color);
+    art = { shut: c.shut, open: c.open, w: CAR_W, h: CAR_H, ay: 58, mount: [82, 26], sill: 25, wheels: true };
+  }
+  return (carCache[color] = art);
 }

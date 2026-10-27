@@ -3,3 +3,5 @@
 __pycache__/
 # Play-test screenshots from tools/playtest.py.
 out/
+# The packed atlas; js/data/sprites.js carries the same image.
+art/atlas.png

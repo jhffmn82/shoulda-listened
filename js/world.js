@@ -275,13 +275,44 @@ const World = (() => {
     return { c, anims: [], h };
   }
 
+  // ---- The PixelLab layers: sky, rooftops, the next block back, and the storefronts at the hero's scale.
+  let pix = null;
+  function buildPix() {
+    if (pix !== null) return pix;
+    if (!Atlas.has('near.home') || !Atlas.has('bg.sky')) return (pix = false);
+    pix = { sky: Atlas.image('bg.sky'), roofs: Atlas.has('bg.roofs') && Atlas.image('bg.roofs'), walk: Atlas.image('bg.sidewalk'),
+      mid: Atlas.keys('mid.').map(k => Atlas.image(k)), near: Atlas.keys('near.').map(k => ({ k, c: Atlas.image(k) })) };
+    pix.skyM = flipX(pix.sky);
+    const d = ctxOf(pix.walk).getImageData(0, pix.walk.height - 1, 1, 1).data;
+    pix.street = rgbHex(d[0], d[1], d[2]);
+    const t = ctxOf(pix.sky).getImageData(0, 0, 1, 1).data;
+    pix.top = rgbHex(t[0], t[1], t[2]);
+    return pix;
+  }
+
   // ---- A whole street for one loop of the stage.
   function makeStreet(loop) {
     const r = seeded(1000 + loop * 77);
     const length = 3300 + Math.min(4, loop - 1) * 350;
     const S = { length, buildings: [], props: [], lamps: [], manholes: [], cans: [], encounters: [] };
     let x = -40, lastShop = -1, lastKind = '';
-    while (x < length - 150) {
+    if (buildPix()) {
+      const near = pix.near.filter(b => b.k !== 'near.home'), home = pix.near.find(b => b.k === 'near.home');
+      let last = '', prev = '';
+      while (x < length - 150) {
+        let b; do b = near[Math.floor(r() * near.length)]; while ((b.k === last || b.k === prev) && near.length > 2);
+        prev = last; last = b.k;
+        S.buildings.push({ x, c: b.c, h: b.c.height, anims: [], kind: b.k });
+        x += b.c.width;
+      }
+      S.buildings.push({ x, c: home.c, h: home.c.height, anims: [], kind: 'home' });
+      S.homeX = x + Math.round(home.c.width / 2);
+      S.length = x + home.c.width;
+      S.mid = [];
+      for (let mx = -60; mx < S.length * .6 + W + 100;) { const c = pix.mid[Math.floor(r() * pix.mid.length)]; S.mid.push({ x: mx, c }); mx += c.width - 1; }
+      x = S.length;
+    }
+    while (!S.mid && x < length - 150) {
       let kind = r() < .5 ? 'tenement' : r() < .55 ? 'brownstone' : r() < .7 ? 'lot' : 'alley';
       if (kind === lastKind && kind !== 'tenement') kind = 'tenement';
       if (x < 200 && kind === 'alley') kind = 'tenement';
@@ -299,11 +330,13 @@ const World = (() => {
       x += b.c.width;
       lastKind = kind;
     }
-    const home = brownstone(96, r, true);
-    home.x = x; home.kind = 'home';
-    S.buildings.push(home);
-    S.homeX = x + home.door;
-    S.length = x + home.c.width;
+    if (!S.mid) {
+      const home = brownstone(96, r, true);
+      home.x = x; home.kind = 'home';
+      S.buildings.push(home);
+      S.homeX = x + home.door;
+      S.length = x + home.c.width;
+    }
     // Encounters, evenly spaced with some jitter.
     const n = Math.min(8, 4 + loop);
     for (let i = 0; i < n; i++) S.encounters.push(Math.round(380 + (S.homeX - 640) * i / (n - 1 || 1) + (r() - .5) * 90));
@@ -328,6 +361,7 @@ const World = (() => {
   }
   function drawBack(ctx, S, cam, t) {
     if (!sky) buildFar();
+    if (S.mid) return drawPix(ctx, S, cam, t);
     ctx.drawImage(sky, 0, 0);
     for (let i = 0; i < 6; i++) { const s = (i * 97 + Math.floor(t * 3)) % 70; ctx.fillStyle = '#fff'; if ((Math.floor(t * 4) + i) % 5 === 0) ctx.fillRect((i * 131) % W, s % 60, 1, 1); }
     tile(ctx, skyline, -cam * .1 - 140, WALK_TOP - skyline.height);
@@ -340,6 +374,25 @@ const World = (() => {
       const by = WALK_TOP - b.h;
       ctx.drawImage(b.c, bx, by);
       for (const a of b.anims) drawAnim(ctx, a, bx, by, t);
+    }
+  }
+  function drawPix(ctx, S, cam, t) {
+    const P = pix, sw = P.sky.width, ox = ((Math.round(-cam * .06) % (sw * 2)) + sw * 2) % (sw * 2) - sw * 2, sy = WALK_TOP - 6 - P.sky.height;
+    ctx.fillStyle = P.top; ctx.fillRect(0, 0, W, WALK_TOP);
+    for (let x = ox; x < W; x += sw * 2) { ctx.drawImage(P.sky, x, sy); ctx.drawImage(P.skyM, x + sw, sy); }
+    if (P.roofs) tile(ctx, P.roofs, -cam * .3, WALK_TOP - 34 - P.roofs.height);
+    for (const m of S.mid) {
+      const x = Math.round(m.x - cam * .6);
+      if (x > W || x + m.c.width < 0) continue;
+      ctx.drawImage(m.c, x, WALK_TOP + 2 - m.c.height);
+    }
+    // Haze over everything behind the storefronts, so the next block reads as farther away.
+    ctx.fillStyle = 'rgba(16, 12, 48, .35)'; ctx.fillRect(0, 0, W, WALK_TOP);
+    for (const b of S.buildings) {
+      const bx = Math.round(b.x - cam);
+      if (bx > W || bx + b.c.width < 0) continue;
+      ctx.drawImage(b.c, bx, WALK_TOP - b.h);
+      if (b.kind === 'home') drawAnim(ctx, { k: 'home', x: b.c.width / 2, y: 4 }, bx, WALK_TOP - b.h, t);
     }
   }
   function drawAnim(ctx, a, bx, by, t) {
@@ -383,7 +436,11 @@ const World = (() => {
     }
   }
   function drawGround(ctx, S, cam, t) {
-    tile(ctx, ground, -cam, WALK_TOP);
+    if (S.mid) {
+      // The asphalt from the code tile under the PixelLab sidewalk, which ends at the curb.
+      tile(ctx, ground, -cam, WALK_TOP);
+      tile(ctx, pix.walk, -cam, WALK_TOP);
+    } else tile(ctx, ground, -cam, WALK_TOP);
     for (const m of S.manholes) { const mx = Math.round(m - cam); if (mx > -20 && mx < W) ctx.drawImage(Sprites.manhole, mx, ROAD + 16); }
     for (const p of S.props) {
       const px = Math.round(p.x - cam), img = Sprites[p.k];
@@ -393,7 +450,7 @@ const World = (() => {
     for (const l of S.lamps) {
       const lx = Math.round(l - cam);
       if (lx < -60 || lx > W + 60) continue;
-      ctx.drawImage(Sprites.lamp, lx - 6, PROP_BASE - Sprites.lamp.height);
+      ctx.drawImage(Sprites.lamp, lx - (Atlas.img ? Sprites.lamp.width >> 1 : 6), PROP_BASE - Sprites.lamp.height);
     }
   }
   // Light from the streetlamps, added after the actors so it lands on them too.
@@ -402,10 +459,10 @@ const World = (() => {
     for (const l of S.lamps) {
       const lx = Math.round(l - cam);
       if (lx < -80 || lx > W + 80) continue;
-      const head = glowSprite(14, '#fff0b0', .55), pool = glowSprite(46, '#ffd890', .16);
-      ctx.drawImage(head, lx + 14 - 14, PROP_BASE - Sprites.lamp.height + 10 - 14);
-      ctx.save(); ctx.translate(lx + 14, FLOOR - 4); ctx.scale(1, .35); ctx.drawImage(pool, -46, -46); ctx.restore();
-      ctx.save(); ctx.translate(lx + 14, FLOOR - 50); ctx.scale(.6, 1.3); ctx.drawImage(glowSprite(46, '#ffe0a0', .07), -46, -46); ctx.restore();
+      const head = glowSprite(14, '#fff0b0', .55), pool = glowSprite(46, '#ffd890', .16), hx = Atlas.img ? lx : lx + 14;
+      ctx.drawImage(head, hx - 14, PROP_BASE - Sprites.lamp.height + (Atlas.img ? 16 : 10) - 14);
+      ctx.save(); ctx.translate(hx, FLOOR - 4); ctx.scale(1, .35); ctx.drawImage(pool, -46, -46); ctx.restore();
+      ctx.save(); ctx.translate(hx, FLOOR - 50); ctx.scale(.6, 1.3); ctx.drawImage(glowSprite(46, '#ffe0a0', .07), -46, -46); ctx.restore();
     }
     ctx.globalCompositeOperation = 'source-over';
   }

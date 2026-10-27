@@ -47,8 +47,6 @@ function puff(r, color) {
   for (let y = -r; y <= r; y++) { const w = Math.round(Math.sqrt(r * r - y * y)); x.fillRect(r - w, r + y, w * 2 + 1, 1); }
   return (puffs[key] = c);
 }
-const carCache = {};
-function carArt(color) { return carCache[color] || (carCache[color] = makeCar(color)); }
 
 function satEstimate(log) {
   if (!log.length) return 200;
@@ -263,7 +261,7 @@ const Play = {
 
   walk(dt) {
     const h = this.hero, c = this.ctl;
-    if (h.state === 'kick') { if (h.t > .32) h.state = 'idle'; }
+    if (h.state === 'kick') { if (h.t > Math.max(.32, Sprites.hero.kick.length / 24)) h.state = 'idle'; }
     else {
       const dir = (c.down('right') ? 1 : 0) - (c.down('left') ? 1 : 0);
       if (dir) {
@@ -338,12 +336,12 @@ const Play = {
       car.x = car.to + (car.from - car.to) * (1 - u) ** 2;
       car.vx = -2 * (car.from - car.to) * (1 - u) / T;
       if (!E.screech && u > .45) { E.screech = true; Sound.play('screech'); }
-      if (u > .45 && u < .95) this.smoke(car.x + WHEELS[1][0], 3);
+      if (u > .45 && u < .95) this.smoke(car.x + carArt(car.color).w * .78, 3);
       if (u >= 1) { car.vx = 0; this.goto('window'); Sound.play('window'); }
     } else if (E.phase === 'window') {
       car.open = Math.min(1, E.t / .4);
-      if (E.t > .45 && !car.gun) car.gun = 'sit';
-      if (E.t > .8) { car.gun = 'aim'; Sound.play('cock'); h.state = 'hands'; this.goto('talk'); }
+      if (E.t > .45 && !car.gun) car.gun = 'sit'; car.gt = 0;
+      if (E.t > .8) { car.gun = 'aim'; car.gt = 0; Sound.play('cock'); h.state = 'hands'; this.goto('talk'); }
     } else if (E.phase === 'talk') {
       if (E.t > 1.6 || (E.t > .5 && this.ctl.pressed('fire'))) { this.goto('quiz'); if (!this.demo) Sound.music('quiz'); }
     } else if (E.phase === 'quiz') this.quiz(dt);
@@ -405,13 +403,13 @@ const Play = {
   },
   resolve() {
     const E = this.E, car = E.car;
-    if (E.ok) { car.gun = 'nod'; E.say = pick(LINES.pass); this.goto('nod'); return; }
-    car.gun = 'fire'; E.flashT = .1;
+    if (E.ok) { car.gun = 'nod'; car.gt = 0; E.say = pick(LINES.pass); this.goto('nod'); return; }
+    car.gun = 'fire'; car.gt = 0; E.flashT = .1;
     E.blocked = this.inv.keeper;
     this.goto('shot');
     Sound.play(Game.parent ? 'squirt' : 'bang');
     this.stop = .12; Game.flash = .9; Game.shake = 7;
-    const g = Sprites.gunman.fire, mx = car.x + 82 - g.ax + g.mx, my = TIRES - 32 - g.ay + g.my;
+    const art = carArt(car.color), f = Sprites.gunman.aim[0], mx = car.x + art.mount[0] - f.ax + Sprites.gunman.mx, my = TIRES - art.ay + art.mount[1] - f.ay + Sprites.gunman.my;
     E.muzzle = [mx, my];
     const h = this.hero, chest = [h.x + 4, FLOOR - 42];
     if (!Game.parent) this.parts.push({ k: 'px', x: mx, y: my - 2, vx: 40, vy: -120, g: 500, life: 1, c: '#e8c040', s: 2 });
@@ -425,20 +423,23 @@ const Play = {
       return;
     }
     E.say = E.pick === -1 ? pick(LINES.late) : pick(LINES.kill);
-    h.state = 'hit'; h.t = 0;
+    h.state = 'shot'; h.t = 0; h.down = false;
     const col = Game.parent ? ['#60a8f8', '#a8d8ff', '#2a70d0'] : ['#c01018', '#e02028', '#7a0810'];
     for (let i = 0; i < 22; i++) this.parts.push({ k: 'px', x: chest[0], y: chest[1], vx: -30 - rand() * 130, vy: -110 + rand() * 120, g: 420, life: 1.2, c: pick(col), s: rand() < .3 ? 2 : 1, floor: FLOOR - 1 });
   },
   shot(dt) {
     const E = this.E, car = E.car, h = this.hero;
     if (E.flashT > 0) E.flashT -= dt;
-    if (E.t > .45 && car.gun === 'fire') car.gun = E.blocked ? 'aim' : 'aim';
+    if (E.t > .45 && car.gun === 'fire') car.gun = 'aim'; car.gt = 0;
     if (E.blocked) {
       if (E.t > 1.5) { car.gun = null; car.leaving = true; Sound.play('screech'); this.goto('leave'); h.state = 'idle'; }
       return;
     }
-    if (h.state === 'hit') { h.x -= 60 * dt; if (h.t > .22) { h.state = 'fall'; h.t = 0; } }
-    else if (h.state === 'fall') { h.x -= 40 * dt; if (h.t > .22) { h.state = 'dead'; h.t = 0; Sound.play('thud'); Game.shake = 3; this.decals.push({ x: h.x - 28, r: 0, max: 24 }); } }
+    if (h.t < .3) h.x -= 50 * dt;
+    if (!h.down && h.t > Sprites.hero.shot.length / 14) {
+      h.down = true; Sound.play('thud'); Game.shake = 3;
+      this.decals.push({ x: h.x + (h.face < 0 ? -1 : 1) * (Sprites.hero.deadCx || 0), r: 0, max: 24 });
+    }
     if (E.t > 1.2 && car.gun) { car.gun = null; car.leaving = true; Sound.play('screech'); Sound.play('engine', 1); }
     if (E.t > 1.3) { this.phase = 'death'; this.D = { t: 0, stage: 'loose' }; }
   },
@@ -468,7 +469,7 @@ const Play = {
         Sound.play('start');
         this.D = null; this.E = null;
         this.cars = this.cars.filter(c => !c.thug);
-        this.phase = 'rise'; this.hero.state = 'rise'; this.hero.t = 0;
+        this.phase = 'rise'; this.hero.state = 'rise'; this.hero.t = 0; this.decals = [];
         return;
       }
       if (D.ct <= 0) this.gameOver();
@@ -476,7 +477,7 @@ const Play = {
   },
   rise() {
     const h = this.hero;
-    if (h.t > .7) { h.state = 'idle'; this.phase = 'walk'; Sound.music('street'); }
+    if (h.t > .7) { h.state = 'idle'; h.down = false; this.phase = 'walk'; Sound.music('street'); }
   },
   gameOver() {
     this.phase = 'over';
@@ -543,12 +544,14 @@ const Play = {
     if (this.phase === 'walk' && this.traffic <= 0 && !this.cars.length) {
       this.traffic = 3 + rand() * 5;
       const right = rand() < .5;
-      this.cars.push({ color: pick(['white', 'blue', 'taxi', 'gray', 'maroon', 'taxi']), x: right ? this.cam - CAR_W - 20 : this.cam + W + 20, vx: (right ? 1 : -1) * (160 + rand() * 90), dir: right ? 1 : -1, fake: !right && rand() < .3 });
+      const color = pick(['white', 'blue', 'taxi', 'gray', 'maroon', 'taxi']);
+      this.cars.push({ color, x: right ? this.cam - carArt(color).w - 20 : this.cam + W + 20, vx: (right ? 1 : -1) * (160 + rand() * 90), dir: right ? 1 : -1, fake: !right && rand() < .3 });
       if (rand() < .3) Sound.play('honk');
     }
     for (const car of this.cars) {
       car.roll = (car.roll || 0) + Math.abs(car.vx) * dt;
-      if (car.leaving) { car.vx = Math.max(-430, car.vx - 650 * dt); if (car.vx > -300) this.smoke(car.x + WHEELS[1][0]); }
+      car.gt = (car.gt || 0) + dt;
+      if (car.leaving) { car.vx = Math.max(-430, car.vx - 650 * dt); if (car.vx > -300) this.smoke(car.x + carArt(car.color).w * .78); }
       else if (car.flee) car.vx *= 1 + dt * 2;
       else if (car.fake && !car.faked && car.x - h.x < 150) { car.faked = true; car.slow = 1.1; }
       if (car.slow > 0) {
@@ -557,7 +560,7 @@ const Play = {
       }
       if (!car.thug || car.leaving || car.flee) car.x += car.vx * dt;
     }
-    this.cars = this.cars.filter(c => c.x > this.cam - CAR_W - 80 && c.x < this.cam + W + 80 || (c.thug && !c.leaving));
+    this.cars = this.cars.filter(c => c.x > this.cam - carArt(c.color).w - 80 && c.x < this.cam + W + 80 || (c.thug && !c.leaving));
     for (const can of this.cans) if (can.vx) { can.x += can.vx * dt; can.vx *= Math.pow(.02, dt); if (Math.abs(can.vx) < 3) can.vx = 0; }
     for (const it of this.items) {
       it.t += dt;
@@ -586,37 +589,45 @@ const Play = {
 
   // ---- Drawing.
   heroFrame() {
-    const h = this.hero, S = Sprites.hero;
+    const h = this.hero, S = Sprites.hero, at = (clip, fps) => clip[Math.min(clip.length - 1, Math.floor(h.t * fps))];
     switch (h.state) {
-      case 'walk': return S.walk[Math.floor(h.step * 11) % 8];
-      case 'kick': return S.kick[h.t < .09 ? 0 : 1];
-      case 'hands': return S.hands[Math.floor(Game.t * 9) % 2];
-      case 'hit': return S.hit;
-      case 'fall': return S.fall;
-      case 'dead': return S.dead;
-      case 'cheer': return S.cheer[Math.floor(Game.t * 4) % 2];
-      case 'rise': return h.t < .25 ? S.dead : h.t < .45 ? S.fall : S.hands[0];
-      default: return S.idle[Math.floor(h.t * 1.5) % 2];
+      case 'walk': return S.walk[Math.floor(h.step * (S.walk.length > 6 ? 11 : 9)) % S.walk.length];
+      case 'kick': return at(S.kick, 24);
+      case 'hands': {
+        const n = S.hands.length, k = Math.floor(h.t * 12);
+        return k < n ? S.hands[k] : S.hands[Math.max(0, n - 2) + Math.floor(Game.t * 8) % Math.min(2, n)];
+      }
+      case 'shot': return at(S.shot, 14);
+      case 'cheer': return S.cheer[Math.floor(Game.t * 8) % S.cheer.length];
+      case 'rise': return S.shot[Math.max(0, S.shot.length - 1 - Math.floor(h.t / .7 * S.shot.length))];
+      default: return S.idle[Math.floor(h.t * 5) % S.idle.length];
     }
   },
   drawCar(ctx, car, cam) {
-    const art = carArt(car.color), x = Math.round(car.x - cam), y = TIRES - 58;
-    const right = car.dir > 0;
-    ctx.globalAlpha = .45; ctx.drawImage(puff(8, '#000'), x + 6, TIRES - 6, CAR_W - 12, 8); ctx.globalAlpha = 1;
-    let body = car.open > 0 ? art.open : art.shut;
+    const art = carArt(car.color), x = Math.round(car.x - cam), y = TIRES - art.ay, right = car.dir > 0;
+    ctx.globalAlpha = .45; ctx.drawImage(puff(8, '#000'), x + 8, TIRES - 6, art.w - 16, 8); ctx.globalAlpha = 1;
+    let body = car.open > 0 && art.open ? art.open : art.shut;
     if (right) body = body.fl || (body.fl = flipX(body));
     ctx.drawImage(body, x, y);
-    if (car.open > 0 && car.open < 1) {
-      ctx.save(); ctx.beginPath(); [[58, 25], [72, 12], [98, 12], [98, 25]].forEach(([a, b], i) => i ? ctx.lineTo(x + a, y + b) : ctx.moveTo(x + a, y + b)); ctx.clip();
-      rect(ctx, x + 56, y + 12 + car.open * 13, 44, 14, '#26344c'); ctx.restore();
+    if (art.wheels) {
+      if (car.open > 0 && car.open < 1) {
+        ctx.save(); ctx.beginPath(); [[58, 25], [72, 12], [98, 12], [98, 25]].forEach(([a, b], i) => i ? ctx.lineTo(x + a, y + b) : ctx.moveTo(x + a, y + b)); ctx.clip();
+        rect(ctx, x + 56, y + 12 + car.open * 13, 44, 14, '#26344c'); ctx.restore();
+      }
+      const wf = Math.floor(car.roll / 6) % 4;
+      for (const [wx, wy] of WHEELS) ctx.drawImage(Wheels[right ? 3 - wf : wf], x + (right ? CAR_W - wx : wx) - 12, y + wy - 12);
     }
-    const wf = Math.floor(car.roll / 6) % 4;
-    for (const [wx, wy] of WHEELS) ctx.drawImage(Wheels[right ? 3 - wf : wf], x + (right ? CAR_W - wx : wx) - 12, y + wy - 12);
-    if (car.gun) drawSpr(ctx, Sprites.gunman[car.gun], x + 82, y + 26);
+    if (car.gun) {
+      // The gunman leans out of the front window: only what's above the sill shows.
+      const clip = Sprites.gunman[car.gun], f = clip[Math.min(clip.length - 1, Math.floor((car.gt || 0) * 12))];
+      ctx.save(); ctx.beginPath(); ctx.rect(x - 160, y - 160, art.w + 320, art.sill + 160); ctx.clip();
+      drawSpr(ctx, f, x + art.mount[0], y + art.mount[1]);
+      ctx.restore();
+    }
     // Headlights at night.
     ctx.globalCompositeOperation = 'lighter';
-    const g = World.glowSprite(30, '#fff4c0', .22);
-    if (right) ctx.drawImage(g, x + CAR_W - 10, y + 14, 70, 26); else ctx.drawImage(g, x - 60, y + 14, 70, 26);
+    const g = World.glowSprite(30, '#fff4c0', .22), hy = y + Math.round(art.h * .35);
+    if (right) ctx.drawImage(g, x + art.w - 12, hy, 70, 26); else ctx.drawImage(g, x - 58, hy, 70, 26);
     ctx.globalCompositeOperation = 'source-over';
   },
   draw(ctx) {
@@ -631,8 +642,8 @@ const Play = {
     for (const can of this.cans) {
       const x = Math.round(can.x - cam);
       if (x < -30 || x > W + 30) continue;
-      if (can.down) { const img = can.flip ? (Sprites.canDown.fl || (Sprites.canDown.fl = flipX(Sprites.canDown))) : Sprites.canDown; ctx.drawImage(img, x - 11, World.PROP_BASE - 13); }
-      else ctx.drawImage(Sprites.can, x - 8, World.PROP_BASE - 19);
+      const img = can.down ? (can.flip ? (Sprites.canDown.fl || (Sprites.canDown.fl = flipX(Sprites.canDown))) : Sprites.canDown) : Sprites.can;
+      ctx.drawImage(img, x - (img.width >> 1), World.PROP_BASE - img.height);
     }
     for (const it of this.items) {
       if (it.t > 9 && blink(6)) continue;
