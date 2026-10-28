@@ -70,7 +70,7 @@ Pick a grade before you play. Every grade is a bank of question generators: fres
 | High school | 84 | Algebra 1, Geometry and Algebra 2: factoring, quadratics, functions, logs, trig and the unit circle, proofs and constructions, circles, statistics and probability |
 | SAT prep | 63 | The SAT's blueprint: algebra, advanced math, problem-solving and data analysis, geometry and trig |
 
-The young grades lean on pictures drawn in pixel art: counting pictures, ten frames, base-ten blocks, clocks, coins, rulers, number lines, arrays, picture and bar graphs, shapes and fractions. Kindergarten to 2nd grade read every question aloud (R reads it again). Harder kinds wait for the second or third lap of the street, so the first lap matches the start of the school year, and the right answer lands in a random slot.
+The young grades lean on pictures drawn in pixel art: counting pictures, ten frames, base-ten blocks, clocks, coins, rulers, number lines, arrays, picture and bar graphs, shapes and fractions. Kindergarten to 2nd grade read every question aloud (R reads it again). Question kinds are dealt like a deck of cards: every kind comes up once before any comes up twice, and the deck carries over from game to game, with topics spread out so you don't get three money questions in a row. Nearly every kind is in the deck from the first lap; only the stretch kinds wait for the second. The right answer lands in a random slot.
 
 ```
 python tools/qtest.py                 # self-test every generator in every grade: right answer, 4 distinct choices, drawable, fits

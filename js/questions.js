@@ -322,15 +322,46 @@ const Questions = (() => {
     if (g.pools) for (const k in kinds) for (const d of levels[k] || [1, 2, 3, 4]) g.pools[d].push(k);
     else Object.assign(g.min, levels);
   }
-  function pool(g, d) { return g.pools ? g.pools[d] : Object.keys(g.kinds).filter(k => (g.min[k] || 1) <= d); }
+  // Which kinds a lap can deal. A kind held back with `min` turns up one lap sooner than its min
+  // (made at its min difficulty), so the first lap already has nearly all of a grade's variety;
+  // only the stretch kinds wait.
+  const opens = (g, k) => Math.max(1, (g.min[k] || 1) - 1);
+  const allows = (g, k, d) => g.pools ? g.pools[d].includes(k) : opens(g, k) <= d;
+  const everyKind = g => g.pools ? [...new Set(g.pools.flat().filter(Boolean))] : Object.keys(g.kinds);
 
-  let recent = [];
-  function make(id, level) {
+  // Kinds are dealt like cards: every kind the lap allows comes up once before any comes up twice.
+  // The deck is kept per grade between games, so a new game carries on where the last one stopped.
+  // Each deal also steers clear of the last few topics, so three money questions don't come in a row.
+  const strand = topic => String(topic || '').slice(0, 3);
+  let lastStrands = [], lastKinds = [];
+  function deal(g, d) {
+    if (!g.strands) {
+      g.strands = {};
+      for (const k of everyKind(g)) { try { g.strands[k] = strand(g.kinds[k](Math.max(d, g.min[k] || 1)).topic); } catch (e) { g.strands[k] = ''; } }
+    }
+    const key = 'deck.' + g.id, all = everyKind(g);
+    let deck = (Store.get(key, null) || []).filter(k => g.kinds[k]);
+    let open = deck.filter(k => allows(g, k, d));
+    if (!open.length) {
+      // A new round of the deck; the last few dealt go to the bottom, so none comes straight back.
+      const fresh = shuffle(all.slice()), back = fresh.filter(k => lastKinds.includes(k));
+      deck = fresh.filter(k => !lastKinds.includes(k)).concat(back);
+      open = deck.filter(k => allows(g, k, d));
+    }
+    const kind = open.find(k => !lastStrands.includes(g.strands[k])) || open[0];
+    deck.splice(deck.indexOf(kind), 1);
+    Store.set(key, deck);
+    lastStrands = [g.strands[kind], ...lastStrands].slice(0, 3);
+    lastKinds = [kind, ...lastKinds].slice(0, 6);
+    return kind;
+  }
+
+  // o.random: pick without touching the deck (the attract-mode demo).
+  function make(id, level, o = {}) {
     const g = byId(id);
     level = clamp(level, 1, 4);
-    const p = pool(g, level);
-    let kind, tries = 0; do kind = pick(p); while (recent.includes(kind) && ++tries < 40);
-    recent = [kind, ...recent].slice(0, Math.min(6, p.length >> 1));
+    const kind = o.random ? pick(everyKind(g).filter(k => allows(g, k, level))) : deal(g, level);
+    if (!g.pools) level = Math.max(level, g.min[kind] || 1);
     // The right answer goes in a slot picked at random, so no letter is a safe guess. Numbers come
     // smallest first, which puts the right one in the middle more often than not, so draw again a
     // few times for one that lands there; failing that, swap it into the slot.

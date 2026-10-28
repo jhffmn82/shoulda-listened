@@ -432,7 +432,7 @@ const Play = {
     const from = this.cam + W + 40, to = Math.round(h.x + 40);
     const car = { thug: true, color: pick(['black', 'black', 'maroon', 'green', 'gray']), x: from, from, to, vx: 0, dir: -1, open: 0, gun: null, roll: 0 };
     this.cars.push(car);
-    const q = Questions.make(this.grade, this.level()), max = this.clock(q);
+    const q = Questions.make(this.grade, this.level(), { random: this.demo }), max = this.clock(q);
     // Talk of the SAT and GPAs is for the high schoolers.
     const lines = ['hs', 'sat'].includes(this.grade) ? LINES.stickup : LINES.stickup.filter(s => !/SAT|GPA/.test(s));
     this.E = { phase: 'arrive', t: 0, car, q, sel: 0, max, time: max, elim: [], used: false, pick: null, coffee: this.inv.coffee, line: pick(lines), lastSec: max,
