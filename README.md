@@ -1,6 +1,6 @@
 # Shoulda Listened to Your Math Teacher
 
-A 1990s arcade game. You're walking home. Every so often a car pulls up, the window rolls down, a gun comes out, and you get one math question, at the grade you picked: kindergarten through 8th grade, high school, or SAT prep. Get it right and you keep walking. Get it wrong: **YOU LOOSE,** *shoulda listened to your math teacher.*
+A 1990s arcade game. You're walking home. Every so often a car pulls up, the window rolls down, a gun comes out, and you get one math question, at the grade you picked: kindergarten through 8th grade, high school, or SAT prep. Get it right and you keep walking. Get it wrong: **YOU LOSE,** *shoulda listened to your math teacher.*
 
 **Play:** open `index.html` in a browser (it works straight from the folder), the GitHub Pages link for this repo, or [on itch.io](https://jhffmn82.itch.io/shoulda-listened).
 

@@ -61,7 +61,7 @@ def run(page, root, out):
     page.keyboard.press('ABCD'[wrong]); time.sleep(.5); shot('wrong')
     wait_for('__game.Play.E && __game.Play.E.phase === "shot"'); time.sleep(.05); shot('bang')
     time.sleep(.5); shot('fallen')
-    wait_for('__game.Play.phase === "death"'); time.sleep(1.6); shot('you-loose')
+    wait_for('__game.Play.phase === "death"'); time.sleep(1.6); shot('you-lose')
     time.sleep(1.2); page.keyboard.press('KeyZ'); time.sleep(1.0); shot('chalkboard')
     page.keyboard.press('KeyZ'); time.sleep(.6); shot('continue')
     # Let the countdown run out.

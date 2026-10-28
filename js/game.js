@@ -210,7 +210,7 @@ const Attract = {
     panel(ctx, 20, 8, W - 40, 196);
     bigText(ctx, 'HOW TO PLAY', 2, BANDS.gold, W / 2, 16);
     const L = ['Pick your grade, kindergarten to SAT prep. Walk home:', '← → to walk, Z to kick cans. When a car pulls up, answer.',
-      'A B C D or 1-4 to answer. Wrong answer: YOU LOOSE.', 'Answer fast for a bonus. 3 right in a row: TEACHER\'S PET.'];
+      'A B C D or 1-4 to answer. Wrong answer: YOU LOSE.', 'Answer fast for a bonus. 3 right in a row: TEACHER\'S PET.'];
     L.forEach((s, i) => Font.draw(ctx, s, 34, 44 + i * 12, '#e8ecff'));
     const items = [['calc', 'TI-83: press X to cross out two wrong answers'], ['coffee', 'COFFEE: the next clock runs at half speed'],
       ['keeper', 'KEVLAR TRAPPER KEEPER: stops one bullet'], ['cash', 'CASH: points']];
@@ -571,7 +571,7 @@ const Play = {
       this.decals.push({ x: h.x + (h.face < 0 ? -1 : 1) * (Sprites.hero.deadCx || 0), r: 0, max: 24 });
     }
     if (E.t > Math.max(1.2, E.sayFor || 0) && car.gun) { car.gun = null; car.leaving = true; Sound.play('screech'); Sound.play('engine', 1); }
-    if (E.t > Math.max(1.3, (E.sayFor || 0) + .2)) { this.phase = 'death'; this.D = { t: 0, stage: 'loose' }; }
+    if (E.t > Math.max(1.3, (E.sayFor || 0) + .2)) { this.phase = 'death'; this.D = { t: 0, stage: 'lose' }; }
   },
 
   // ---- Dying, the chalkboard, continuing.
@@ -583,7 +583,7 @@ const Play = {
     const any = this.ctl.pressed('fire') || Input.pressed('start') || Input.taps.length;
     // "You lose! Shoulda listened to your math teacher." is said in full before the chalkboard comes down.
     const said = D.slam && D.t > .6 + (D.loseFor || 0) + .2;
-    if (D.stage === 'loose' && said && (D.t > 4.2 || (D.t > 1.8 && any))) { D.stage = 'board'; D.bt = 0; D.boardFor = this.vo('board', { wait: 4 }); return; }
+    if (D.stage === 'lose' && said && (D.t > 4.2 || (D.t > 1.8 && any))) { D.stage = 'board'; D.bt = 0; D.boardFor = this.vo('board', { wait: 4 }); return; }
     if (D.stage === 'board') {
       D.bt += dt;
       if (this.demo && D.bt > 4) return Game.go(Attract, 'title');
@@ -920,9 +920,9 @@ const Play = {
   // ---- Death screens.
   drawDeath(ctx) {
     const D = this.D;
-    if (D.stage === 'loose' || (D.stage === 'board' && D.bt < .2)) {
+    if (D.stage === 'lose' || (D.stage === 'board' && D.bt < .2)) {
       if (D.t > .6) {
-        const k = Math.min(1, (D.t - .6) * 7), c = Font.big('YOU LOOSE,', 5, BANDS.red), w = c.width * (2.2 - 1.2 * k), hh = c.height * (2.2 - 1.2 * k);
+        const k = Math.min(1, (D.t - .6) * 7), c = Font.big('YOU LOSE,', 5, BANDS.red), w = c.width * (2.2 - 1.2 * k), hh = c.height * (2.2 - 1.2 * k);
         ctx.drawImage(c, Math.round(W / 2 - w / 2), Math.round(60 - hh / 2), Math.round(w), Math.round(hh));
       }
       if (D.t > 1.1) {

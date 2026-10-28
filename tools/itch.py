@@ -119,7 +119,7 @@ def images():
         page.evaluate(f'({JUMP})(1)')
         wait('__game.Play.E && __game.Play.E.phase === "quiz"', 30)
         page.keyboard.press('ABCD'[page.evaluate('(__game.Play.E.q.answer + 2) % 4')])
-        wait('__game.Play.phase === "death" && __game.Play.D.t > 2.6', 30); shot('you-loose')
+        wait('__game.Play.phase === "death" && __game.Play.D.t > 2.6', 30); shot('you-lose')
         page.keyboard.press('KeyZ'); time.sleep(1.2); shot('chalkboard')
         browser.close()
         if errors: print('page errors:', errors)
