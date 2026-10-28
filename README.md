@@ -2,7 +2,7 @@
 
 A 1990s arcade game. You're walking home. Every so often a car pulls up, the window rolls down, a gun comes out, and you get one SAT math question. Get it right and you keep walking. Get it wrong: **YOU LOOSE,** *shoulda listened to your math teacher.*
 
-**Play:** open `index.html` in a browser (it works straight from the folder), or the GitHub Pages link for this repo.
+**Play:** open `index.html` in a browser (it works straight from the folder), the GitHub Pages link for this repo, or [on itch.io](https://jhffmn82.itch.io/shoulda-listened).
 
 ## How it plays
 
@@ -90,4 +90,6 @@ The key goes in `.secrets/pixellab-api-key.txt` (git-ignored) or `PIXELLAB_API_K
 | `art/takes`, `art/picked` | Every PixelLab take, and the ones the game uses; `art/calls.jsonl` logs each request |
 | `tools/playtest.py` | Plays every screen in headless Chrome and saves screenshots to `out/` |
 | `tools/publish.py` | Pushes to GitHub and turns on Pages |
+| `tools/itch.py` | Builds the itch.io upload zip, cover, banner and screenshots in `out/itch/` |
+| `itch/` | The itch.io page: its description, and every setting on its form |
 | `ref/concept.webp` | The concept art |
