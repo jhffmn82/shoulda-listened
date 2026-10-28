@@ -26,6 +26,7 @@ const Sound = (() => {
       for (let k = 1; k < n; k++) re[k] = 2 / (k * Math.PI) * Math.sin(k * Math.PI * duty);
       waves[name] = ac.createPeriodicWave(re, im);
     }
+    loadVoices();
   }
   const ready = () => ac && ac.state === 'running';
 
@@ -210,18 +211,59 @@ const Sound = (() => {
     song = null;
   }
 
-  // ---- The announcer.
-  let voice = null;
+  // ---- Voices: the recorded lines in js/data/voices.js (ElevenLabs, crunched to 8 bits by
+  // tools/voices.py), on one speech channel like a 90s board: a new line cuts off the last one,
+  // unless it's queued, and the music ducks while anyone talks.
+  const lines = {};
+  let vox = null, talking = null, queued = null;
+  function loadVoices() {
+    if (vox || typeof VOICE_LINES === 'undefined') return;
+    vox = ac.createGain(); vox.gain.value = 1.15; vox.connect(out);
+    for (const [k, b64] of Object.entries(VOICE_LINES)) {
+      const bin = atob(b64), buf = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+      ac.decodeAudioData(buf.buffer).then(b => { lines[k] = b; }, () => { /* left out */ });
+    }
+  }
+  function duck(on) {
+    const t = ac.currentTime;
+    mus.gain.cancelScheduledValues(t); mus.gain.setValueAtTime(mus.gain.value, t);
+    mus.gain.linearRampToValueAtTime(on ? .14 : .42, t + (on ? .05 : .4));
+  }
+  // Plays a line (a key, or a list to pick from) and returns how long it runs, 0 if it can't play.
+  // o.queue: wait for whoever is talking to finish. o.fallback: words for the browser's own voice.
+  function voice(key, o = {}) {
+    if (Array.isArray(key)) key = key[Math.floor(Math.random() * key.length)];
+    if (muted || !ready()) return 0;
+    const b = lines[key];
+    if (!b) { if (o.fallback) say(o.fallback); return 0; }
+    if (o.queue && talking) { queued = key; return b.duration + talking.left(); }
+    if (talking) talking.src.stop();
+    const src = ac.createBufferSource(), at = ac.currentTime;
+    src.buffer = b; src.connect(vox); src.start();
+    const me = talking = { src, left: () => Math.max(0, b.duration - (ac.currentTime - at)) };
+    duck(true);
+    src.onended = () => {
+      if (talking !== me) return;
+      talking = null;
+      if (queued) { const q = queued; queued = null; voice(q); } else duck(false);
+    };
+    return b.duration;
+  }
+  function hush() { queued = null; if (talking) { const t = talking; talking = null; t.src.stop(); duck(false); } }
+
+  // The browser's own voice, for a line that wasn't recorded.
+  let sv = null;
   function pickVoice() {
     const vs = window.speechSynthesis ? speechSynthesis.getVoices() : [];
-    voice = vs.find(v => /^en/i.test(v.lang) && /david|mark|guy|male|fred|daniel/i.test(v.name)) || vs.find(v => /^en/i.test(v.lang)) || null;
+    sv = vs.find(v => /^en/i.test(v.lang) && /david|mark|guy|male|fred|daniel/i.test(v.name)) || vs.find(v => /^en/i.test(v.lang)) || null;
   }
   if (window.speechSynthesis) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
   function say(text, pitch = .3) {
     if (muted || !ready() || !window.speechSynthesis) return;
     const u = new SpeechSynthesisUtterance(text);
     u.pitch = pitch; u.rate = .82; u.volume = 1;
-    if (voice) u.voice = voice;
+    if (sv) u.voice = sv;
     speechSynthesis.cancel();
     speechSynthesis.speak(u);
   }
@@ -231,7 +273,8 @@ const Sound = (() => {
     Store.set('mute', muted);
     if (out) out.gain.value = muted ? 0 : 0.7;
     if (muted && window.speechSynthesis) speechSynthesis.cancel();
+    if (muted && ac) hush();
     return muted;
   }
-  return { init, play, music, stopMusic, say, toggleMute, get muted() { return muted; }, get song() { return song && song.name; } };
+  return { init, play, music, stopMusic, say, voice, hush, toggleMute, get muted() { return muted; }, get song() { return song && song.name; }, get talking() { return !!talking; } };
 })();

@@ -17,9 +17,21 @@ A 1990s arcade game. You're walking home. Every so often a car pulls up, the win
 | Reach home | Stage clear: bonuses for right answers, time left and no misses, then the next round is harder |
 | Game over | Your estimated SAT Math score, then the initials table if you made the top 10 |
 
-Kick trash cans for items: a **TI-83** (X crosses out two wrong answers), **coffee** (the next clock runs at half speed), a **Kevlar Trapper Keeper** (stops one bullet) or cash.
+Kick trash cans for items: a **TI-83** (press X in a quiz and two wrong answers get crossed out; you can carry three), **coffee** (the next quiz clock runs at half speed), a **Kevlar Trapper Keeper** (stops one bullet; you still got the question wrong) or cash. A card says what each one does when you pick it up, the tray at the bottom left shows what you're carrying, and the quiz panel lists the ones in play.
 
 **Parent Mode** (P on the title screen): water pistols and puddles instead of guns and blood.
+
+## The voices
+
+Everyone talks, in ElevenLabs voices: the announcer (Patrick) calls the stages, right and wrong answers, Teacher's Pet, the continue countdown and the items; the gunman (Harry) has a line for pulling up, letting you go, shooting you, and finding out about the Trapper Keeper; the hero (Liam) has grunts, a scream for the rat and what he forgot at school; Mr. Delgado (Thomas) goes over the problem and reads your SAT score. About 100 lines, crunched to 8 bits at 16 kHz like a 1994 sound board, on one speech channel that ducks the music.
+
+```
+python tools/voices.py audition     # the same lines in several voices, out/voices.html
+python tools/voices.py lines        # records SCRIPT in the CAST's voices (cached in art/voice/cache)
+python tools/voices.py pack         # rebuilds js/data/voices.js
+```
+
+The key goes in `.secrets/elevenlabs-api-key.txt` (git-ignored) or `ELEVENLABS_API_KEY`. The tools need `numpy` and `lameenc`.
 
 ## Controls
 
@@ -46,7 +58,7 @@ Diagram questions draw their figure in pixel art: triangles, parallel lines, rig
 
 ## The art
 
-Everything you see in the game was made in [PixelLab](https://www.pixellab.ai) through its API: the hero, the gunman (and his water-pistol twin for Parent Mode), the sedan and the taxi, the props and items, the night skyline, the next block over, and fourteen close-up storefronts at the hero's scale (liquor store, bodega, pizza place, video store, laundromat, barber, pawn shop, arcade, Chinese takeout, a graffiti-covered gate, brownstone stoops, home, a fenced lot, an alley). The street scrolls in layers: sky, the next block at 0.6 speed under a haze, then the storefronts.
+Everything you see in the game was made in [PixelLab](https://www.pixellab.ai) through its API: the hero, the gunman (and his water-pistol twin for Parent Mode), the sedan and the taxi, the props and items, the night skyline, the next block over, and fourteen close-up storefronts at the hero's scale (liquor store, bodega, pizza place, video store, laundromat, barber, pawn shop, arcade, Chinese takeout, a graffiti-covered gate, brownstone stoops, home, a fenced lot, an alley). The street scrolls in layers: sky, the next block at 0.6 speed under a haze, then the storefronts. PixelLab's background removal also cut out wall and window pixels that matched its background colour, so `pack` fills those holes from the colours round them (with a brick course on the big ones); only the sky above each roofline stays clear.
 
 ```
 python tools/pixellab.py balance              # generations left
@@ -65,12 +77,15 @@ The key goes in `.secrets/pixellab-api-key.txt` (git-ignored) or `PIXELLAB_API_K
 | `js/core.js` | Screen size, helpers, controls, saved settings |
 | `js/font.js` | The arcade font (drawn here) and big gradient title letters |
 | `js/data/sprites.js` | Every sprite and the street, made in PixelLab, packed into one embedded atlas |
+| `js/data/voices.js` | Every spoken line, as embedded 8-bit MP3s |
 | `js/art.js` | Loads the atlas into sprites; also code-drawn stand-ins, used if the atlas is missing |
 | `js/figures.js`, `js/questions.js` | The question generators |
-| `js/sound.js` | Synthesized music, effects and the announcer |
+| `js/sound.js` | Synthesized music and effects, and the voice channel |
 | `js/world.js` | The street: sky, skyline, bridge, rooftops, storefronts, stoops, lots |
 | `js/game.js` | Attract mode, play, the quiz, death, continue, stage clear, high scores |
 | `tools/pixellab.py` | Makes the art in PixelLab (stills, animations, the hero's 4-direction character and template walk) and packs `js/data/sprites.js` |
+| `tools/voices.py` | Auditions voices, records the script in ElevenLabs, and packs `js/data/voices.js` |
+| `art/voice/calls.jsonl` | Every ElevenLabs request |
 | `tools/contact.py`, `tools/ruler.py` | Contact sheets of takes for picking, and rulers for reading crop lines |
 | `art/takes`, `art/picked` | Every PixelLab take, and the ones the game uses; `art/calls.jsonl` logs each request |
 | `tools/playtest.py` | Plays every screen in headless Chrome and saves screenshots to `out/` |

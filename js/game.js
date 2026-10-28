@@ -5,14 +5,18 @@
 const SCORES_DEFAULT = [['SOH', 50000, 780], ['CAH', 40000, 740], ['TOA', 35000, 700], ['PEM', 30000, 660], ['DAS', 25000, 620],
   ['MTH', 20000, 580], ['SAT', 15000, 540], ['NRD', 10000, 500], ['PI.', 7500, 460], ['X=5', 5000, 420]]
   .map(([name, score, sat]) => ({ name, score, sat }));
+// The gunman's lines. Each one is also recorded (tools/voices.py), under 'g-' and its words.
 const LINES = {
   stickup: ['YO. POP QUIZ.', 'HEY KID. QUICK QUESTION.', 'SOLVE THIS... OR ELSE.', 'NO CALCULATORS.', 'PENCILS DOWN. HANDS UP.',
-    'SHOW YOUR WORK, PUNK.', 'GOT A MINUTE? GOOD.', "LET'S SEE THAT GPA."],
-  pass: ['...RESPECT.', 'CORRECT. CARRY ON.', "YOUR TEACHER'D BE PROUD.", 'NOT BAD, EINSTEIN.', 'STAY IN SCHOOL, KID.', 'A-PLUS. BEAT IT.'],
-  kill: ['SHOULDA STUDIED.', 'WRONG.', 'NO PARTIAL CREDIT.', 'SEE ME AFTER CLASS.', 'CLASS DISMISSED.'],
+    'SHOW YOUR WORK, PUNK.', 'GOT A MINUTE? GOOD.', "LET'S SEE THAT GPA.", 'EYES ON YOUR OWN PAPER.', 'THIS IS 30% OF YOUR GRADE.',
+    'GOT A NUMBER 2 PENCIL?', "IT'S SAT TIME, BABY."],
+  pass: ['...RESPECT.', 'CORRECT. CARRY ON.', "YOUR TEACHER'D BE PROUD.", 'NOT BAD, EINSTEIN.', 'STAY IN SCHOOL, KID.', 'A-PLUS. BEAT IT.',
+    'GOLD STAR. GET OUTTA HERE.', 'YOU SHOWED YOUR WORK. NICE.'],
+  kill: ['SHOULDA STUDIED.', 'WRONG.', 'NO PARTIAL CREDIT.', 'SEE ME AFTER CLASS.', 'CLASS DISMISSED.', "THAT'S A ZERO.", 'CHECK YOUR WORK NEXT TIME.'],
   late: ['PENCILS DOWN.', "TIME'S UP.", 'TOO SLOW.'],
   blocked: ['...WHAT.', 'IS THAT A TRAPPER KEEPER?', 'KEVLAR?! MAN...'],
 };
+const words = s => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(' ').join('-');
 const FORGOT = ['YOUR BACKPACK', 'YOUR CALCULATOR', 'YOUR LUNCH MONEY', 'YOUR RETAINER', 'YOUR PERMISSION SLIP', 'YOUR HOMEWORK'];
 const SAT_JOKES = [[750, 'MIT CALLED. THEY WANT YOU.'], [650, 'STATE SCHOOL MATERIAL.'], [550, 'YOUR MOM IS... PROUD-ISH.'],
   [450, 'MAYBE GET A TUTOR.'], [350, 'YOUR MATH TEACHER IS DISAPPOINTED.'], [0, 'DID YOU WRITE YOUR NAME?']];
@@ -23,6 +27,14 @@ const BANDS = {
   green: ['#effff0', '#a0ff90', '#48e848', '#20a828', '#107018'],
 };
 const SUBTITLE = 'shoulda listened to your math teacher';
+// The power-ups, as the pickup card, the item tray and the quiz panel describe them.
+const TOUCH = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+const CALC_KEY = TOUCH ? 'B' : 'X';
+const ITEMS = {
+  calc: { name: 'TI-83!', what: `IN A QUIZ, PRESS ${CALC_KEY} AND TWO WRONG ANSWERS GET CROSSED OUT.`, bands: BANDS.green, color: '#80ff80', tray: 'TI-83', tag: `${CALC_KEY}: CUT 2` },
+  coffee: { name: 'COFFEE!', what: 'THE NEXT QUIZ CLOCK RUNS AT HALF SPEED.', bands: BANDS.gold, color: '#ffd040', tray: 'COFFEE', tag: 'SLOW CLOCK' },
+  keeper: { name: 'TRAPPER KEEPER!', what: 'KEVLAR-LINED. STOPS THE NEXT BULLET.', bands: BANDS.blue, color: '#60e0ff', tray: 'KEEPER', tag: 'STOPS 1 BULLET' },
+};
 const pad = (n, k) => String(Math.max(0, Math.floor(n))).padStart(k, '0');
 const blink = (rate = 2) => Math.floor(Game.t * rate * 2) % 2 === 0;
 const rect = (ctx, x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
@@ -108,6 +120,8 @@ const Attract = {
     this.mode = mode; this.t = 0;
     if (!this.S) { this.S = World.makeStreet(7); this.cam = 400; }
     Sound.stopMusic();
+    // The cabinet calls its name now and then, not every lap of the attract loop.
+    if (mode === 'title' && !(Game.t - this.called < 90)) { this.called = Game.t; this.calling = true; }
   },
   next() {
     const order = ['title', 'scores', 'howto', 'demo'];
@@ -122,6 +136,7 @@ const Attract = {
     const tap = Input.tap();
     if (Input.pressed('parent') || (tap && this.mode === 'title' && tap.y > 196 && tap.y < 212)) {
       Game.setParent(!Game.parent); Sound.play('select');
+      Sound.voice(Game.parent ? 'parent-on' : 'parent-off');
       return;
     }
     if (Input.pressed('start') || tap) {
@@ -129,6 +144,10 @@ const Attract = {
       Game.credits--;
       Sound.play('start');
       return Game.go(Play, {});
+    }
+    if (this.calling && this.mode === 'title' && this.t > .7 && Sound.voice('title')) {
+      this.calling = false;
+      if (!Game.credits) Sound.voice('insert-coin', { queue: true });
     }
     const dur = { title: 9, scores: 7, howto: 8 }[this.mode];
     if (this.t > dur) this.next();
@@ -213,7 +232,7 @@ const Play = {
     this.demo = !!o.demo;
     this.loop = 1; this.score = 0; this.cont = 0; this.streak = 0;
     this.inv = { calc: 0, coffee: false, keeper: false };
-    this.log = [];
+    this.log = []; this.card = null; this.kicked = false;
     this.ctl = this.demo ? Bot : Input;
     this.paused = false; this.stop = 0;
     this.startLoop();
@@ -229,12 +248,15 @@ const Play = {
     this.traffic = 2.5; this.idleT = 0; this.steamT = 0;
     this.phase = 'walk';
     this.banner = { big: this.loop > 1 ? 'STAGE 1-' + this.loop : 'STAGE 1', sub: this.loop > 1 ? 'THE BLOCK, AGAIN. HARDER.' : 'THE BLOCK', sub2: 'GET HOME!', t: 0, dur: 3 };
-    if (!this.demo) { Sound.music('street'); Sound.say(this.loop > 1 ? 'Stage one, round ' + this.loop : 'Stage one'); }
+    if (!this.demo) Sound.music('street');
+    this.vo(this.loop > 1 ? 'round-' + Math.min(5, this.loop) : 'stage-1', { fallback: this.loop > 1 ? 'Round ' + this.loop : 'Stage one' });
   },
   level() { return clamp(this.loop + (rand() < .3 ? -1 : 0), 1, 4); },
   clock(q) { return [30, 25, 22, 18, 15][Math.min(4, this.loop - 1)] + (q.fig || q.text.length > 110 ? 5 : 0); },
   pop(x, y, text, color = '#fff') { this.pops.push({ x, y, text, color, t: 0 }); },
   add(points) { this.score += points; },
+  // Someone says something (not in the demo). Returns how long it runs.
+  vo(key, o) { return this.demo ? 0 : Sound.voice(key, o); },
 
   update(dt) {
     if (this.demo) {
@@ -250,6 +272,7 @@ const Play = {
     Game.shake = Math.max(0, Game.shake - dt * 24);
     Game.flash = Math.max(0, Game.flash - dt * 5);
     if (this.banner) { this.banner.t += dt; if (this.banner.t > this.banner.dur) this.banner = null; }
+    if (this.card) { this.card.t += dt; if (this.card.t > 3.2 || this.E) this.card = null; }
     if (this.phase === 'walk') this.walk(dt);
     else if (this.phase === 'enc') this.enc(dt);
     else if (this.phase === 'rise') this.rise(dt);
@@ -275,7 +298,7 @@ const Play = {
     this.cam = clamp(Math.max(this.cam, h.x - 130), 0, this.S.length - W);
     this.time = Math.max(0, this.time - dt);
     if (this.time <= 15 && !this.hurried) {
-      this.hurried = true; Sound.play('hurry'); Sound.say('Hurry up');
+      this.hurried = true; Sound.play('hurry'); this.vo('hurry', { fallback: 'Hurry up' });
       this.banner = { big: 'HURRY UP!', t: 0, dur: 2, bands: BANDS.red };
     }
     const S = this.S;
@@ -291,25 +314,31 @@ const Play = {
     Sound.play('kick');
     for (const can of this.cans) {
       if (can.down || Math.abs(can.x - (h.x + h.face * 16)) > 15) continue;
-      can.down = true; can.vx = 110 * h.face; can.flip = h.face < 0;
+      can.down = true; can.vx = 110 * h.face; can.flip = h.face < 0; this.kicked = true;
+      if (rand() < .35) this.vo(['hero-kick-1', 'hero-kick-2']);
       Sound.play('clang'); Game.shake = 2;
       this.add(100); this.pop(can.x, WALK_TOP - 4, '100', '#ffe060');
       this.parts.push({ k: 'spr', img: Sprites.lid, x: can.x, y: World.PROP_BASE - 20, vx: 90 * h.face, vy: -160, g: 480, life: 1.4 });
       for (let i = 0; i < 6; i++) this.parts.push({ k: 'px', x: can.x, y: World.PROP_BASE - 12, vx: (rand() - .3) * 120 * h.face, vy: -60 - rand() * 90, g: 300, life: 1, c: pick(['#e8e8e0', '#c8b890', '#7aa060']), s: 2 });
       const loot = can.loot || (r => r < .45 ? 'cash' : r < .62 ? 'calc' : r < .78 ? 'coffee' : r < .9 ? 'keeper' : 'rat')(rand());
-      if (loot === 'rat') { this.parts.push({ k: 'rat', x: can.x, y: World.PROP_BASE + 2, vx: 150 * h.face, life: 3 }); Sound.play('select'); this.pop(can.x, WALK_TOP + 2, 'EEK!', '#ff80c0'); }
+      if (loot === 'rat') { this.parts.push({ k: 'rat', x: can.x, y: World.PROP_BASE + 2, vx: 150 * h.face, life: 3 }); Sound.play('select'); this.pop(can.x, WALK_TOP + 2, 'EEK!', '#ff80c0'); this.vo('hero-rat'); }
       else this.items.push({ k: loot, x: can.x, y: World.PROP_BASE - 10, vx: 40 * h.face, vy: -170, t: 0, landed: false });
     }
   },
   take(it) {
     it.gone = true;
     const h = this.hero, I = this.inv;
-    let label;
-    if (it.k === 'cash') { const v = pick([500, 500, 1000, 2000]); this.add(v); label = '$' + v / 100 + '  +' + v; Sound.play('pickup'); }
-    else if (it.k === 'calc') { if (I.calc < 3) { I.calc++; label = 'TI-83!'; } else { this.add(1000); label = '+1000'; } Sound.play('oneup'); }
-    else if (it.k === 'coffee') { if (!I.coffee) { I.coffee = true; label = 'COFFEE!'; } else { this.add(1000); label = '+1000'; } Sound.play('oneup'); }
-    else if (it.k === 'keeper') { if (!I.keeper) { I.keeper = true; label = 'KEVLAR TRAPPER KEEPER!'; } else { this.add(1000); label = '+1000'; } Sound.play('oneup'); }
-    this.pop(h.x, FLOOR - 76, label, '#ffe060');
+    if (it.k === 'cash') {
+      const v = pick([500, 500, 1000, 2000]);
+      this.add(v); Sound.play('pickup'); this.vo('cash');
+      return this.pop(h.x, FLOOR - 76, '$' + v / 100 + '  +' + v, '#ffe060');
+    }
+    // Already holding as many as you can: it's worth points instead.
+    const full = it.k === 'calc' ? I.calc >= 3 : I[it.k];
+    if (full) { this.add(1000); Sound.play('pickup'); return this.pop(h.x, FLOOR - 76, 'SPARE ' + ITEMS[it.k].tray + '  +1000', '#ffe060'); }
+    if (it.k === 'calc') I.calc++; else I[it.k] = true;
+    Sound.play('oneup'); this.vo('item-' + it.k);
+    this.card = { k: it.k, t: 0 };
   },
 
   // ---- The stick-up.
@@ -337,17 +366,24 @@ const Play = {
       car.vx = -2 * (car.from - car.to) * (1 - u) / T;
       if (!E.screech && u > .45) { E.screech = true; Sound.play('screech'); }
       if (u > .45 && u < .95) this.smoke(car.x + carArt(car.color).w * .78, 3);
-      if (u >= 1) { car.vx = 0; this.goto('window'); Sound.play('window'); }
+      if (u >= 1) { car.vx = 0; this.goto('window'); Sound.play('window'); if (rand() < .5) this.vo(['hero-uhoh-1', 'hero-uhoh-2', 'hero-uhoh-3']); }
     } else if (E.phase === 'window') {
       car.open = Math.min(1, E.t / .4);
-      if (E.t > .45 && !car.gun) car.gun = 'sit'; car.gt = 0;
-      if (E.t > .8) { car.gun = 'aim'; car.gt = 0; Sound.play('cock'); h.state = 'hands'; this.goto('talk'); }
+      if (E.t > .45 && !car.gun) { car.gun = 'sit'; car.gt = 0; }
+      if (E.t > .8) { car.gun = 'aim'; car.gt = 0; Sound.play('cock'); h.state = 'hands'; this.goto('talk'); E.talkFor = this.vo('g-' + words(E.line)); }
     } else if (E.phase === 'talk') {
-      if (E.t > 1.6 || (E.t > .5 && this.ctl.pressed('fire'))) { this.goto('quiz'); if (!this.demo) Sound.music('quiz'); }
+      if (E.t > Math.max(1.6, (E.talkFor || 0) + .2) || (E.t > .5 && this.ctl.pressed('fire'))) {
+        this.goto('quiz');
+        if (!this.demo) Sound.music('quiz');
+        if (E.coffee) { Sound.play('power'); this.vo('use-coffee'); }
+      }
     } else if (E.phase === 'quiz') this.quiz(dt);
     else if (E.phase === 'reveal') { if (E.t > 1.1) this.resolve(); }
     else if (E.phase === 'nod') {
-      if (E.t > 1.3) { car.gun = null; car.leaving = true; Sound.play('screech'); Sound.play('engine', 1); h.state = 'idle'; this.goto('leave'); }
+      if (E.t > Math.max(1.3, (E.sayFor || 0) + .15)) {
+        car.gun = null; car.leaving = true; Sound.play('screech'); Sound.play('engine', 1); h.state = 'idle'; this.goto('leave');
+        if (rand() < .4) this.vo(['hero-phew-1', 'hero-phew-2', 'hero-phew-3'], { queue: true });
+      }
     } else if (E.phase === 'leave') {
       if (!this.cars.includes(car)) { this.E = null; this.phase = 'walk'; if (!this.demo) Sound.music('street'); }
     } else if (E.phase === 'shot') this.shot(dt);
@@ -355,6 +391,7 @@ const Play = {
   quiz(dt) {
     const E = this.E, c = this.ctl, L = E.L;
     E.time -= dt * (E.coffee ? .5 : 1);
+    if (E.calcT != null) E.calcT += dt;
     const sec = Math.ceil(E.time);
     if (sec !== E.lastSec) { E.lastSec = sec; if (sec > 0) Sound.play('tick', sec <= 5); }
     if (E.time <= 0) return this.answer(-1);
@@ -371,7 +408,7 @@ const Play = {
     for (const t of Input.taps) {
       L.boxes.forEach((b, k) => { if (E.pick === null && !E.elim.includes(k) && t.x >= b.x && t.x < b.x + b.w && t.y >= L.y + b.y && t.y < L.y + b.y + b.h) this.answer(k); });
       if (E.pick !== null) return;
-      if (t.x < 60 && t.y > 200) this.useCalc();
+      if (t.x < 90 && t.y > 186) this.useCalc();
     }
     if (c.pressed('calc')) this.useCalc();
   },
@@ -381,8 +418,9 @@ const Play = {
     this.inv.calc--; E.used = true;
     E.elim = shuffle([0, 1, 2, 3].filter(k => k !== E.q.answer)).slice(0, 2);
     if (E.elim.includes(E.sel)) E.sel = E.q.answer === E.sel ? E.sel : [0, 1, 2, 3].find(k => !E.elim.includes(k));
-    Sound.play('power');
-    this.pop(this.hero.x, FLOOR - 80, 'TI-83!', '#80ff80');
+    E.calcT = 0;
+    Sound.play('power'); this.vo('use-calc');
+    this.pop(this.hero.x, FLOOR - 80, 'TI-83: 2 WRONG ANSWERS OUT!', '#80ff80');
   },
   answer(k) {
     const E = this.E;
@@ -397,13 +435,14 @@ const Play = {
       const pts = (1000 + 100 * Math.ceil(Math.max(0, E.time))) * mult * this.loop;
       this.add(pts);
       this.pop(this.hero.x, FLOOR - 84, '+' + pts, '#80ff80');
-      if ([3, 6, 10].includes(this.streak)) { this.banner = { big: "TEACHER'S PET", sub: 'x' + mult + ' POINTS', t: 0, dur: 2.2, bands: BANDS.green }; Sound.say("Teacher's pet", .5); }
-      else if (!this.demo) Sound.say(pick(['Correct', 'Correct', 'Excellent']), .5);
-    } else { this.streak = 0; this.missed++; }
+      if ([3, 6, 10].includes(this.streak)) { this.banner = { big: "TEACHER'S PET", sub: 'x' + mult + ' POINTS', t: 0, dur: 2.2, bands: BANDS.green }; this.vo('pet-' + mult); }
+      else if (E.max - E.time < 3) this.vo('quick');
+      else this.vo(['correct-1', 'correct-1', 'correct-2', 'correct-3', 'correct-4'], { fallback: 'Correct' });
+    } else { this.streak = 0; this.missed++; this.vo(k === -1 ? 'times-up' : 'wrong'); }
   },
   resolve() {
     const E = this.E, car = E.car;
-    if (E.ok) { car.gun = 'nod'; car.gt = 0; E.say = pick(LINES.pass); this.goto('nod'); return; }
+    if (E.ok) { car.gun = 'nod'; car.gt = 0; E.say = pick(LINES.pass); this.goto('nod'); E.sayFor = this.vo('g-' + words(E.say)); return; }
     car.gun = 'fire'; car.gt = 0; E.flashT = .1;
     E.blocked = this.inv.keeper;
     this.goto('shot');
@@ -418,11 +457,13 @@ const Play = {
       this.inv.keeper = false;
       Sound.play('ricochet');
       this.parts.push({ k: 'spr', img: Sprites.keeper, x: h.x + 10, y: FLOOR - 40, vx: -60, vy: -200, g: 500, life: 1.6 });
-      this.pop(h.x, FLOOR - 84, 'BLOCKED!', '#60e0ff');
+      this.banner = { big: 'BLOCKED!', sub: 'THE KEVLAR TRAPPER KEEPER TOOK THE BULLET.', sub2: 'YOU STILL GOT IT WRONG, THOUGH.', t: 0, dur: 2.6, bands: BANDS.blue };
       E.say = pick(LINES.blocked);
+      this.vo('blocked'); this.vo('g-' + words(E.say), { queue: true });
       return;
     }
     E.say = E.pick === -1 ? pick(LINES.late) : pick(LINES.kill);
+    this.vo(Game.parent ? 'hero-soaked' : 'hero-hit'); this.vo('g-' + words(E.say), { queue: true });
     h.state = 'shot'; h.t = 0; h.down = false;
     const col = Game.parent ? ['#60a8f8', '#a8d8ff', '#2a70d0'] : ['#c01018', '#e02028', '#7a0810'];
     for (let i = 0; i < 22; i++) this.parts.push({ k: 'px', x: chest[0], y: chest[1], vx: -30 - rand() * 130, vy: -110 + rand() * 120, g: 420, life: 1.2, c: pick(col), s: rand() < .3 ? 2 : 1, floor: FLOOR - 1 });
@@ -430,7 +471,7 @@ const Play = {
   shot(dt) {
     const E = this.E, car = E.car, h = this.hero;
     if (E.flashT > 0) E.flashT -= dt;
-    if (E.t > .45 && car.gun === 'fire') car.gun = 'aim'; car.gt = 0;
+    if (E.t > .45 && car.gun === 'fire') { car.gun = 'aim'; car.gt = 0; }
     if (E.blocked) {
       if (E.t > 1.5) { car.gun = null; car.leaving = true; Sound.play('screech'); this.goto('leave'); h.state = 'idle'; }
       return;
@@ -449,19 +490,19 @@ const Play = {
     const D = this.D;
     D.t += dt;
     if (!D.trom && D.t > .1) { D.trom = true; if (!this.demo) Sound.play('trombone'); }
-    if (!D.slam && D.t > .6) { D.slam = true; Game.shake = 6; Sound.play('thud'); if (!this.demo) Sound.say('You loose'); }
+    if (!D.slam && D.t > .6) { D.slam = true; Game.shake = 6; Sound.play('thud'); this.vo('you-lose', { fallback: 'You lose' }); }
     const any = this.ctl.pressed('fire') || Input.pressed('start') || Input.taps.length;
-    if (D.stage === 'loose' && (D.t > 4.2 || (D.t > 1.8 && any))) { D.stage = 'board'; D.bt = 0; return; }
+    if (D.stage === 'loose' && (D.t > 4.2 || (D.t > 1.8 && any))) { D.stage = 'board'; D.bt = 0; this.vo('board'); return; }
     if (D.stage === 'board') {
       D.bt += dt;
       if (this.demo && D.bt > 4) return Game.go(Attract, 'title');
-      if ((D.bt > .8 && any) || D.bt > 14) { D.stage = 'cont'; D.ct = 9.99; D.sec = 10; }
+      if ((D.bt > .8 && any) || D.bt > 14) { D.stage = 'cont'; D.ct = 9.99; D.sec = 10; this.vo('continue'); }
       return;
     }
     if (D.stage === 'cont') {
       D.ct -= dt;
       const s = Math.ceil(D.ct);
-      if (s !== D.sec) { D.sec = s; if (s >= 0) Sound.play('beep'); }
+      if (s !== D.sec) { D.sec = s; if (s >= 0) Sound.play('beep'); if (s >= 1 && s <= 9) this.vo('count-' + (s - 1)); }
       if (Input.pressed('start') || Input.taps.length || this.ctl.pressed('fire')) {
         if (!Game.credits) Game.coin();
         Game.credits--;
@@ -470,6 +511,7 @@ const Play = {
         this.D = null; this.E = null;
         this.cars = this.cars.filter(c => !c.thug);
         this.phase = 'rise'; this.hero.state = 'rise'; this.hero.t = 0; this.decals = [];
+        this.vo('hero-rise');
         return;
       }
       if (D.ct <= 0) this.gameOver();
@@ -483,12 +525,13 @@ const Play = {
     this.phase = 'over';
     this.D = null;
     this.O = { t: 0, sat: satEstimate(this.log) };
-    this.O.joke = SAT_JOKES.find(([s]) => this.O.sat >= s)[1];
-    Sound.stopMusic(); Sound.play('gameover'); Sound.say('Game over');
+    [this.O.band, this.O.joke] = SAT_JOKES.find(([s]) => this.O.sat >= s);
+    Sound.stopMusic(); Sound.play('gameover'); this.vo('game-over', { fallback: 'Game over' });
   },
   over(dt) {
     const O = this.O;
     O.t += dt;
+    if (!O.joked && O.t > 2.2) { O.joked = true; this.vo('sat-' + O.band); }
     if (O.t > 7 || (O.t > 2.5 && (this.ctl.pressed('fire') || Input.pressed('start') || Input.taps.length))) {
       const score = this.score + Math.min(9, this.cont);
       if (Game.rank(score) >= 0) Game.go(Entry, { score, sat: O.sat });
@@ -509,7 +552,10 @@ const Play = {
     if (C.stage === 'walk') {
       const d = this.S.homeX - h.x;
       if (Math.abs(d) > 2) { h.face = Math.sign(d); h.x += h.face * 60 * dt; h.state = 'walk'; h.step += dt; }
-      else { h.state = 'cheer'; h.face = 1; C.stage = 'cheer'; C.t = 0; Sound.music('clear'); Sound.say('Stage clear'); }
+      else {
+        h.state = 'cheer'; h.face = 1; C.stage = 'cheer'; C.t = 0; Sound.music('clear');
+        this.vo('hero-home'); this.vo('stage-clear', { queue: true, fallback: 'Stage clear' });
+      }
       this.cam = clamp(Math.max(this.cam, h.x - 130), 0, this.S.length - W);
     } else if (C.stage === 'cheer') {
       if (C.t > 1.6) {
@@ -526,7 +572,7 @@ const Play = {
           if (C.n < r[1]) { const k = Math.min(step, r[1] - C.n); C.n += k; this.add(k * r[2]); Sound.play('tally'); }
           else { C.row++; C.n = 0; C.t = -.5; }
         }
-      } else if (C.t > 1.6) { C.stage = 'story'; C.t = 0; C.forgot = pick(FORGOT); }
+      } else if (C.t > 1.6) { C.stage = 'story'; C.t = 0; C.forgot = pick(FORGOT); this.vo('forgot-' + words(C.forgot).replace(/^your-/, '')); }
     } else if (C.stage === 'story') {
       if (C.t > 4.5 || (C.t > 1.5 && (this.ctl.pressed('fire') || Input.pressed('start') || Input.taps.length))) { this.loop++; this.startLoop(); }
     }
@@ -556,7 +602,7 @@ const Play = {
       else if (car.fake && !car.faked && car.x - h.x < 150) { car.faked = true; car.slow = 1.1; }
       if (car.slow > 0) {
         car.slow -= dt; car.vx = lerp(car.vx, car.slow > .3 ? -30 : -260, dt * 4);
-        if (car.slow <= 0) { Sound.play('honk'); this.pop(car.x + 40, TIRES - 64, 'MADE YOU LOOK!', '#ffe060'); }
+        if (car.slow <= 0) { Sound.play('honk'); this.pop(car.x + 40, TIRES - 64, 'MADE YOU LOOK!', '#ffe060'); this.vo('made-you-look'); }
       }
       if (!car.thug || car.leaving || car.flee) car.x += car.vx * dt;
     }
@@ -670,6 +716,7 @@ const Play = {
 
     if (this.E) this.drawEncounter(ctx);
     this.drawHud(ctx);
+    if (this.card) this.drawCard(ctx);
     if (this.banner) this.drawBanner(ctx);
     if (this.phase === 'death') this.drawDeath(ctx);
     if (this.phase === 'over') this.drawOver(ctx);
@@ -697,19 +744,39 @@ const Play = {
       ctx.drawImage(Sprites.house, bx + bw + 2, 12);
       Font.draw(ctx, 'HOME', bx - 4, 14, '#c8c8e0', { align: 'right', outline: '#000' });
     }
-    // Items, bottom left.
-    let x = 6;
-    const slot = (img, n, on) => {
-      ctx.globalAlpha = on ? 1 : .25; ctx.drawImage(img, x, 220 - img.height); ctx.globalAlpha = 1;
-      x += img.width + 1;
-      if (n > 1) { Font.draw(ctx, 'x' + n, x, 212, '#fff', o); x += 14; }
-      x += 4;
-    };
-    slot(Sprites.calc, this.inv.calc, this.inv.calc > 0);
-    slot(Sprites.coffee, 1, this.inv.coffee || (this.E && this.E.coffee));
-    slot(Sprites.keeper, 1, this.inv.keeper);
-    if (this.inv.calc && this.E && this.E.phase === 'quiz' && !this.E.used) Font.draw(ctx, 'X: CALCULATOR', x + 2, 212, blink(2) ? '#80ff80' : '#409040', o);
+    // The item tray, bottom left: what you're carrying and what it's for.
+    const E = this.E, quiz = E && E.phase === 'quiz';
+    // Coffee stays on the tray, lit, until the quiz it slows is answered.
+    const coffee = this.inv.coffee || (E && E.coffee && E.pick == null);
+    const held = [['calc', this.inv.calc], ['coffee', coffee ? 1 : 0], ['keeper', this.inv.keeper ? 1 : 0]].filter(([, n]) => n);
+    let x = 4;
+    for (const [k, n] of held) {
+      const it = ITEMS[k], img = Sprites[k], name = it.tray + (n > 1 ? ' x' + n : '');
+      const live = k === 'calc' ? quiz && !E.used : k === 'coffee' && !this.inv.coffee;
+      const tag = k === 'coffee' && live ? 'ACTIVE' : it.tag;
+      ctx.drawImage(img, x, 221 - img.height);
+      x += img.width + 2;
+      Font.draw(ctx, name, x, 201, '#ffffff', o);
+      Font.draw(ctx, tag, x, 211, live && blink(3) ? '#ffffff' : it.color, o);
+      x += Math.max(Font.width(name, true), Font.width(tag, true)) + 8;
+    }
+    // The first stage teaches kicking: a prompt over the next can.
+    if (this.loop === 1 && !this.kicked && this.phase === 'walk') {
+      const can = this.cans.find(c => !c.down && c.x - this.hero.x > -10 && c.x - this.hero.x < 90);
+      if (can && blink(2)) Font.draw(ctx, TOUCH ? 'A: KICK!' : 'Z: KICK!', can.x - this.cam, World.PROP_BASE - 40, '#ffe040', { bold: true, align: 'center', outline: '#000' });
+    }
     if (this.idleT > 3 && this.phase === 'walk' && blink(2)) bigText(ctx, 'GO →', 2, BANDS.gold, W - 44, 92);
+  },
+  // The card that says what you just picked up.
+  drawCard(ctx) {
+    const C = this.card, it = ITEMS[C.k], img = Sprites[C.k];
+    const k = Math.min(1, C.t * 5, (3.2 - C.t) * 5), y = Math.round(28 - (1 - k) * 80);
+    const lines = Font.wrap(it.what, W - 60 - 52);
+    const h = 30 + lines.length * 10;
+    panel(ctx, 30, y, W - 60, h);
+    ctx.drawImage(img, 46 - (img.width >> 1), y + Math.round(h / 2 - img.height / 2));
+    ctx.drawImage(Font.big(it.name, 2, it.bands), 66, y + 7);
+    lines.forEach((s, i) => Font.draw(ctx, s, 66, y + 26 + i * 10, '#ffffff', { bold: true }));
   },
   drawBanner(ctx) {
     const b = this.banner, k = Math.min(1, b.t * 6);
@@ -730,10 +797,13 @@ const Play = {
     const cols = short ? 4 : 2, bw = Math.floor((inner - (cols - 1) * 6) / cols), bh = 15;
     const ay = 18 + bodyH + 5;
     const boxes = q.choices.map((s, k) => ({ x: px + 6 + (k % cols) * (bw + 6), y: ay + Math.floor(k / cols) * (bh + 4), w: bw, h: bh }));
-    const ph = ay + (4 / cols) * (bh + 4) + 4;
+    let ph = ay + (4 / cols) * (bh + 4) + 4;
+    // A line under the answers for the power-ups in play, if any.
+    const barY = this.inv.calc || this.inv.keeper || (this.E && this.E.coffee) ? ph - 1 : 0;
+    if (barY) ph += 11;
     let figC = null;
     if (fig) { figC = canvas(figW, figH); const x = figC.getContext('2d'); x.fillStyle = '#0c1028'; x.fillRect(0, 0, figW, figH); q.fig(x, figW, figH); }
-    return { px, pw, lines, cols, boxes, ph, figC, figX: px + pw - 6 - figW, figY: 18, y: 12, fig };
+    return { px, pw, lines, cols, boxes, ph, barY, figC, figX: px + pw - 6 - figW, figY: 18, y: 12, fig };
   },
   drawEncounter(ctx) {
     const E = this.E, L = E.L, car = E.car, cam = this.cam;
@@ -778,13 +848,34 @@ const Play = {
       rect(ctx, x, y, b.w, b.h, '#000'); rect(ctx, x + 1, y + 1, b.w - 2, b.h - 2, edge); rect(ctx, x + 2, y + 2, b.w - 4, b.h - 4, fill);
       const label = 'ABCD'[k] + ')  ' + E.q.choices[k];
       Font.draw(ctx, label, x + b.w / 2, y + 4, ink, { bold: true, align: 'center' });
-      if (out) rect(ctx, x + 6, y + 7, b.w - 12, 1, '#5a5a6a');
+      if (out) {
+        // Crossed out by the TI-83: a red X, after a white flash.
+        if (E.calcT < .25) rect(ctx, x + 2, y + 2, b.w - 4, b.h - 4, blink(12) ? '#ffffff' : '#80ff80');
+        for (let i = 0; i < b.w - 8; i++) {
+          const v = Math.round(i * (b.h - 5) / (b.w - 9));
+          rect(ctx, x + 4 + i, y + 2 + v, 1, 1, '#e02020'); rect(ctx, x + 4 + i, y + b.h - 3 - v, 1, 1, '#e02020');
+        }
+      }
       if (sel && blink(4)) Font.draw(ctx, '→', x - 1, y + 4, '#ffe040', { bold: true, align: 'right' });
     });
+    if (L.barY) this.drawItemBar(ctx, y0 + L.barY);
     if (E.phase === 'reveal') {
       const ok = E.ok, s = E.pick === -1 ? "TIME'S UP!" : ok ? 'CORRECT!' : 'WRONG!';
       bigText(ctx, s, 3, ok ? BANDS.green : BANDS.red, W / 2, y0 + L.ph + 4);
     }
+  },
+
+  drawItemBar(ctx, y) {
+    const E = this.E, L = E.L, parts = [];
+    if (E.used) parts.push(['TI-83 USED', 'TI-83 USED', '#4a7a4a']);
+    else if (this.inv.calc) parts.push([`PRESS ${CALC_KEY}: TI-83 CROSSES OUT 2`, `${CALC_KEY}: TI-83`, blink(2) ? '#80ff80' : '#ffffff']);
+    if (E.coffee) parts.push(['COFFEE: CLOCK AT HALF SPEED', 'COFFEE: HALF-SPEED CLOCK', '#ffd040']);
+    if (this.inv.keeper) parts.push(['TRAPPER KEEPER: STOPS 1 BULLET', 'KEEPER: 1 BULLET', '#60e0ff']);
+    const room = L.pw - 20, gap = 14;
+    const width = k => parts.reduce((s, p) => s + Font.width(p[k], true), 0) + gap * (parts.length - 1);
+    const k = width(0) <= room ? 0 : 1;
+    let x = Math.round(W / 2 - width(k) / 2);
+    for (const p of parts) { Font.draw(ctx, p[k], x, y, p[2], { bold: true }); x += Font.width(p[k], true) + gap; }
   },
 
   // ---- Death screens.
@@ -872,7 +963,7 @@ const Entry = {
   enter(o) {
     this.o = o; this.name = ''; this.cur = 0; this.t = 0;
     this.rank = Game.rank(o.score);
-    Sound.music('entry');
+    Sound.music('entry'); Sound.voice('high-score');
   },
   finish() {
     const name = (this.name + '   ').slice(0, 3);

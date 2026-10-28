@@ -1,0 +1,154 @@
+{"t": "2026-10-27 17:47:45", "voice": "Callum", "model": "eleven_v3", "text": "[menacing] Yo. Pop quiz.", "fmt": "pcm_22050", "bytes": 95256}
+{"t": "2026-10-27 17:47:47", "voice": "Callum", "model": "eleven_v3", "text": "[cold] No partial credit.", "fmt": "pcm_22050", "bytes": 88200}
+{"t": "2026-10-27 17:47:48", "voice": "Harry", "model": "eleven_v3", "text": "[menacing] Yo. Pop quiz.", "fmt": "pcm_22050", "bytes": 102312}
+{"t": "2026-10-27 17:47:49", "voice": "Harry", "model": "eleven_v3", "text": "[cold] No partial credit.", "fmt": "pcm_22050", "bytes": 70560}
+{"t": "2026-10-27 17:47:50", "voice": "Arnold", "model": "eleven_v3", "text": "[menacing] Yo. Pop quiz.", "fmt": "pcm_22050", "bytes": 70560}
+{"t": "2026-10-27 17:47:51", "voice": "Arnold", "model": "eleven_v3", "text": "[cold] No partial credit.", "fmt": "pcm_22050", "bytes": 59976}
+{"t": "2026-10-27 17:47:52", "voice": "Adam", "model": "eleven_v3", "text": "[menacing] Yo. Pop quiz.", "fmt": "pcm_22050", "bytes": 81144}
+{"t": "2026-10-27 17:47:53", "voice": "Adam", "model": "eleven_v3", "text": "[cold] No partial credit.", "fmt": "pcm_22050", "bytes": 49392}
+{"t": "2026-10-27 17:47:54", "voice": "Brian", "model": "eleven_v3", "text": "[menacing] Yo. Pop quiz.", "fmt": "pcm_22050", "bytes": 81144}
+{"t": "2026-10-27 17:47:55", "voice": "Brian", "model": "eleven_v3", "text": "[cold] No partial credit.", "fmt": "pcm_22050", "bytes": 74088}
+{"t": "2026-10-27 17:47:56", "voice": "Roger", "model": "eleven_v3", "text": "[menacing] Yo. Pop quiz.", "fmt": "pcm_22050", "bytes": 70560}
+{"t": "2026-10-27 17:47:57", "voice": "Roger", "model": "eleven_v3", "text": "[cold] No partial credit.", "fmt": "pcm_22050", "bytes": 88200}
+{"t": "2026-10-27 17:47:58", "voice": "Brian", "model": "eleven_v3", "text": "[shouting] Shoulda listened... to your MATH TEACHER!", "fmt": "pcm_22050", "bytes": 130536}
+{"t": "2026-10-27 17:47:59", "voice": "Brian", "model": "eleven_v3", "text": "[excited] Teacher's pet!", "fmt": "pcm_22050", "bytes": 70560}
+{"t": "2026-10-27 17:48:01", "voice": "Adam", "model": "eleven_v3", "text": "[shouting] Shoulda listened... to your MATH TEACHER!", "fmt": "pcm_22050", "bytes": 119952}
+{"t": "2026-10-27 17:48:02", "voice": "Adam", "model": "eleven_v3", "text": "[excited] Teacher's pet!", "fmt": "pcm_22050", "bytes": 52920}
+{"t": "2026-10-27 17:48:03", "voice": "Harry", "model": "eleven_v3", "text": "[shouting] Shoulda listened... to your MATH TEACHER!", "fmt": "pcm_22050", "bytes": 148176}
+{"t": "2026-10-27 17:48:04", "voice": "Harry", "model": "eleven_v3", "text": "[excited] Teacher's pet!", "fmt": "pcm_22050", "bytes": 81144}
+{"t": "2026-10-27 17:48:05", "voice": "Arnold", "model": "eleven_v3", "text": "[shouting] Shoulda listened... to your MATH TEACHER!", "fmt": "pcm_22050", "bytes": 112896}
+{"t": "2026-10-27 17:48:06", "voice": "Arnold", "model": "eleven_v3", "text": "[excited] Teacher's pet!", "fmt": "pcm_22050", "bytes": 49392}
+{"t": "2026-10-27 17:48:07", "voice": "George", "model": "eleven_v3", "text": "[shouting] Shoulda listened... to your MATH TEACHER!", "fmt": "pcm_22050", "bytes": 137592}
+{"t": "2026-10-27 17:48:08", "voice": "George", "model": "eleven_v3", "text": "[excited] Teacher's pet!", "fmt": "pcm_22050", "bytes": 95256}
+{"t": "2026-10-27 17:48:10", "voice": "Liam", "model": "eleven_v3", "text": "[groans] Aw, man!", "fmt": "pcm_22050", "bytes": 98784}
+{"t": "2026-10-27 17:48:10", "voice": "Liam", "model": "eleven_v3", "text": "[excited] Yes! I'm home!", "fmt": "pcm_22050", "bytes": 81144}
+{"t": "2026-10-27 17:48:12", "voice": "Will", "model": "eleven_v3", "text": "[groans] Aw, man!", "fmt": "pcm_22050", "bytes": 88200}
+{"t": "2026-10-27 17:48:13", "voice": "Will", "model": "eleven_v3", "text": "[excited] Yes! I'm home!", "fmt": "pcm_22050", "bytes": 88200}
+{"t": "2026-10-27 17:48:14", "voice": "Chris", "model": "eleven_v3", "text": "[groans] Aw, man!", "fmt": "pcm_22050", "bytes": 77616}
+{"t": "2026-10-27 17:48:15", "voice": "Chris", "model": "eleven_v3", "text": "[excited] Yes! I'm home!", "fmt": "pcm_22050", "bytes": 74088}
+{"t": "2026-10-27 17:48:16", "voice": "Antoni", "model": "eleven_v3", "text": "[groans] Aw, man!", "fmt": "pcm_22050", "bytes": 67032}
+{"t": "2026-10-27 17:48:17", "voice": "Antoni", "model": "eleven_v3", "text": "[excited] Yes! I'm home!", "fmt": "pcm_22050", "bytes": 88200}
+{"t": "2026-10-27 17:48:18", "voice": "Eric", "model": "eleven_v3", "text": "[sighs] Okay. Let's go over it.", "fmt": "pcm_22050", "bytes": 134064}
+{"t": "2026-10-27 17:48:19", "voice": "George", "model": "eleven_v3", "text": "[sighs] Okay. Let's go over it.", "fmt": "pcm_22050", "bytes": 95256}
+{"t": "2026-10-27 17:48:21", "voice": "Roger", "model": "eleven_v3", "text": "[sighs] Okay. Let's go over it.", "fmt": "pcm_22050", "bytes": 123480}
+{"t": "2026-10-27 17:48:22", "voice": "Chris", "model": "eleven_v3", "text": "[sighs] Okay. Let's go over it.", "fmt": "pcm_22050", "bytes": 88200}
+{"t": "2026-10-27 17:59:32", "voice": "Clyde", "model": "eleven_v3", "text": "[menacing] Yo. Pop quiz.", "bytes": 84672}
+{"t": "2026-10-27 17:59:33", "voice": "Clyde", "model": "eleven_v3", "text": "[cold] No partial credit.", "bytes": 77616}
+{"t": "2026-10-27 17:59:34", "voice": "Sam", "model": "eleven_v3", "text": "[menacing] Yo. Pop quiz.", "bytes": 91728}
+{"t": "2026-10-27 17:59:35", "voice": "Sam", "model": "eleven_v3", "text": "[cold] No partial credit.", "bytes": 67032}
+{"t": "2026-10-27 17:59:36", "voice": "Josh", "model": "eleven_v3", "text": "[menacing] Yo. Pop quiz.", "bytes": 95256}
+{"t": "2026-10-27 17:59:37", "voice": "Josh", "model": "eleven_v3", "text": "[cold] No partial credit.", "bytes": 91728}
+{"t": "2026-10-27 17:59:38", "voice": "Drew", "model": "eleven_v3", "text": "[menacing] Yo. Pop quiz.", "bytes": 77616}
+{"t": "2026-10-27 17:59:38", "voice": "Drew", "model": "eleven_v3", "text": "[cold] No partial credit.", "bytes": 45864}
+{"t": "2026-10-27 17:59:40", "voice": "Patrick", "model": "eleven_v3", "text": "[shouting] Shoulda listened... to your MATH TEACHER!", "bytes": 123480}
+{"t": "2026-10-27 17:59:41", "voice": "Patrick", "model": "eleven_v3", "text": "[excited] Teacher's pet!", "bytes": 63504}
+{"t": "2026-10-27 17:59:43", "voice": "Clyde", "model": "eleven_v3", "text": "[shouting] Shoulda listened... to your MATH TEACHER!", "bytes": 137592}
+{"t": "2026-10-27 17:59:44", "voice": "Clyde", "model": "eleven_v3", "text": "[excited] Teacher's pet!", "bytes": 91728}
+{"t": "2026-10-27 17:59:46", "voice": "Josh", "model": "eleven_v3", "text": "[shouting] Shoulda listened... to your MATH TEACHER!", "bytes": 127008}
+{"t": "2026-10-27 17:59:47", "voice": "Josh", "model": "eleven_v3", "text": "[excited] Teacher's pet!", "bytes": 70560}
+{"t": "2026-10-27 17:59:48", "voice": "Paul", "model": "eleven_v3", "text": "[shouting] Shoulda listened... to your MATH TEACHER!", "bytes": 127008}
+{"t": "2026-10-27 17:59:49", "voice": "Paul", "model": "eleven_v3", "text": "[excited] Teacher's pet!", "bytes": 70560}
+{"t": "2026-10-27 17:59:50", "voice": "Jeremy", "model": "eleven_v3", "text": "[groans] Aw, man!", "bytes": 70560}
+{"t": "2026-10-27 17:59:51", "voice": "Jeremy", "model": "eleven_v3", "text": "[excited] Yes! I'm home!", "bytes": 74088}
+{"t": "2026-10-27 17:59:52", "voice": "Sam", "model": "eleven_v3", "text": "[groans] Aw, man!", "bytes": 105840}
+{"t": "2026-10-27 17:59:53", "voice": "Sam", "model": "eleven_v3", "text": "[excited] Yes! I'm home!", "bytes": 91728}
+{"t": "2026-10-27 17:59:55", "voice": "Michael", "model": "eleven_v3", "text": "[sighs] Okay. Let's go over it.", "bytes": 109368}
+{"t": "2026-10-27 17:59:56", "voice": "Thomas", "model": "eleven_v3", "text": "[sighs] Okay. Let's go over it.", "bytes": 134064}
+{"t": "2026-10-27 17:59:57", "voice": "Dave", "model": "eleven_v3", "text": "[sighs] Okay. Let's go over it.", "bytes": 105840}
+{"t": "2026-10-27 18:40:13", "voice": "Patrick", "model": "eleven_v3", "text": "[excited] Insert coin!", "bytes": 77616}
+{"t": "2026-10-27 18:40:13", "voice": "Patrick", "model": "eleven_v3", "text": "[shouting] Stage one! Get home!", "bytes": 109368}
+{"t": "2026-10-27 18:40:13", "voice": "Patrick", "model": "eleven_v3", "text": "[shouting] Round two! Get home... again!", "bytes": 123480}
+{"t": "2026-10-27 18:40:13", "voice": "Patrick", "model": "eleven_v3", "text": "[shouting] Round three!", "bytes": 77616}
+{"t": "2026-10-27 18:40:14", "voice": "Patrick", "model": "eleven_v3", "text": "[shouting] Round four!", "bytes": 88200}
+{"t": "2026-10-27 18:40:14", "voice": "Patrick", "model": "eleven_v3", "text": "[shouting] Here we go again!", "bytes": 84672}
+{"t": "2026-10-27 18:40:14", "voice": "Patrick", "model": "eleven_v3", "text": "[excited] Correct!", "bytes": 49392}
+{"t": "2026-10-27 18:40:14", "voice": "Patrick", "model": "eleven_v3", "text": "[urgent] Hurry up!", "bytes": 56448}
+{"t": "2026-10-27 18:40:15", "voice": "Patrick", "model": "eleven_v3", "text": "[excited] Excellent!", "bytes": 63504}
+{"t": "2026-10-27 18:40:15", "voice": "Patrick", "model": "eleven_v3", "text": "[excited] Outstanding!", "bytes": 74088}
+{"t": "2026-10-27 18:40:15", "voice": "Patrick", "model": "eleven_v3", "text": "[excited] Brilliant!", "bytes": 63504}
+{"t": "2026-10-27 18:40:16", "voice": "Patrick", "model": "eleven_v3", "text": "[excited] Whoa! Quick math!", "bytes": 63504}
+{"t": "2026-10-27 18:40:16", "voice": "Patrick", "model": "eleven_v3", "text": "[shouting] Teacher's pet! Double points!", "bytes": 91728}
+{"t": "2026-10-27 18:40:17", "voice": "Patrick", "model": "eleven_v3", "text": "[shouting] Teacher's pet! Triple points!", "bytes": 91728}
+{"t": "2026-10-27 18:40:17", "voice": "Patrick", "model": "eleven_v3", "text": "[shouting] Teacher's pet! Quadruple points!", "bytes": 102312}
+{"t": "2026-10-27 18:40:17", "voice": "Patrick", "model": "eleven_v3", "text": "[shouting] Wrong!", "bytes": 52920}
+{"t": "2026-10-27 18:40:18", "voice": "Patrick", "model": "eleven_v3", "text": "[shouting] Time's up!", "bytes": 63504}
+{"t": "2026-10-27 18:40:18", "voice": "Patrick", "model": "eleven_v3", "text": "[dramatic] Continue?", "bytes": 88200}
+{"t": "2026-10-27 18:40:19", "voice": "Patrick", "model": "eleven_v3", "text": "[dramatic] Zero!", "bytes": 88200}
+{"t": "2026-10-27 18:40:19", "voice": "Patrick", "model": "eleven_v3", "text": "[shouting] You lose! [pause] [disappointed] Shoulda listened to your math teacher.", "bytes": 179928}
+{"t": "2026-10-27 18:40:19", "voice": "Patrick", "model": "eleven_v3", "text": "[dramatic] One!", "bytes": 56448}
+{"t": "2026-10-27 18:40:20", "voice": "Patrick", "model": "eleven_v3", "text": "[dramatic] Two!", "bytes": 84672}
+{"t": "2026-10-27 18:40:20", "voice": "Patrick", "model": "eleven_v3", "text": "[dramatic] Four!", "bytes": 52920}
+{"t": "2026-10-27 18:40:20", "voice": "Patrick", "model": "eleven_v3", "text": "[dramatic] Three!", "bytes": 102312}
+{"t": "2026-10-27 18:40:21", "voice": "Patrick", "model": "eleven_v3", "text": "[dramatic] Five!", "bytes": 59976}
+{"t": "2026-10-27 18:40:21", "voice": "Patrick", "model": "eleven_v3", "text": "[dramatic] Six!", "bytes": 59976}
+{"t": "2026-10-27 18:40:21", "voice": "Patrick", "model": "eleven_v3", "text": "[dramatic] Seven!", "bytes": 91728}
+{"t": "2026-10-27 18:40:22", "voice": "Patrick", "model": "eleven_v3", "text": "[dramatic] Eight!", "bytes": 56448}
+{"t": "2026-10-27 18:40:22", "voice": "Patrick", "model": "eleven_v3", "text": "[dramatic] Nine!", "bytes": 52920}
+{"t": "2026-10-27 18:40:22", "voice": "Patrick", "model": "eleven_v3", "text": "[dramatic] Game over.", "bytes": 63504}
+{"t": "2026-10-27 18:40:23", "voice": "Patrick", "model": "eleven_v3", "text": "[shouting] Stage clear!", "bytes": 74088}
+{"t": "2026-10-27 18:40:23", "voice": "Patrick", "model": "eleven_v3", "text": "[excited] New high score! Enter your initials!", "bytes": 95256}
+{"t": "2026-10-27 18:40:24", "voice": "Patrick", "model": "eleven_v3", "text": "[excited] T. I. eighty-three!", "bytes": 88200}
+{"t": "2026-10-27 18:40:24", "voice": "Patrick", "model": "eleven_v3", "text": "[excited] Coffee!", "bytes": 67032}
+{"t": "2026-10-27 18:40:24", "voice": "Patrick", "model": "eleven_v3", "text": "[excited] Kevlar Trapper Keeper!", "bytes": 77616}
+{"t": "2026-10-27 18:40:24", "voice": "Patrick", "model": "eleven_v3", "text": "[excited] Calculator power!", "bytes": 77616}
+{"t": "2026-10-27 18:40:25", "voice": "Patrick", "model": "eleven_v3", "text": "[excited] Caffeine rush!", "bytes": 91728}
+{"t": "2026-10-27 18:40:25", "voice": "Patrick", "model": "eleven_v3", "text": "[excited] Cha-ching!", "bytes": 56448}
+{"t": "2026-10-27 18:40:26", "voice": "Patrick", "model": "eleven_v3", "text": "[shouting] Blocked!", "bytes": 116424}
+{"t": "2026-10-27 18:40:26", "voice": "Patrick", "model": "eleven_v3", "text": "[cheerful] Parent mode! Water guns only.", "bytes": 81144}
+{"t": "2026-10-27 18:40:26", "voice": "Patrick", "model": "eleven_v3", "text": "[shouting] Parent mode off!", "bytes": 70560}
+{"t": "2026-10-27 18:40:27", "voice": "Harry", "model": "eleven_v3", "text": "[menacing] Hey, kid. Quick question.", "bytes": 88200}
+{"t": "2026-10-27 18:40:27", "voice": "Harry", "model": "eleven_v3", "text": "[threatening] Solve this... or else.", "bytes": 109368}
+{"t": "2026-10-27 18:40:27", "voice": "Harry", "model": "eleven_v3", "text": "[cold] No calculators.", "bytes": 88200}
+{"t": "2026-10-27 18:40:28", "voice": "Harry", "model": "eleven_v3", "text": "[menacing] Pencils down. Hands up.", "bytes": 88200}
+{"t": "2026-10-27 18:40:28", "voice": "Harry", "model": "eleven_v3", "text": "[menacing] Show your work, punk.", "bytes": 74088}
+{"t": "2026-10-27 18:40:28", "voice": "Harry", "model": "eleven_v3", "text": "[menacing] Got a minute? Good.", "bytes": 102312}
+{"t": "2026-10-27 18:40:29", "voice": "Harry", "model": "eleven_v3", "text": "[mocking] Let's see that GPA.", "bytes": 77616}
+{"t": "2026-10-27 18:40:29", "voice": "Harry", "model": "eleven_v3", "text": "[menacing] Eyes on your own paper.", "bytes": 70560}
+{"t": "2026-10-27 18:40:30", "voice": "Harry", "model": "eleven_v3", "text": "[menacing] This is thirty percent of your grade.", "bytes": 116424}
+{"t": "2026-10-27 18:40:30", "voice": "Harry", "model": "eleven_v3", "text": "[menacing] You got a number two pencil?", "bytes": 102312}
+{"t": "2026-10-27 18:40:30", "voice": "Harry", "model": "eleven_v3", "text": "[gleeful] It's SAT time, baby.", "bytes": 105840}
+{"t": "2026-10-27 18:40:31", "voice": "Harry", "model": "eleven_v3", "text": "[flatly] Correct. Carry on.", "bytes": 88200}
+{"t": "2026-10-27 18:40:31", "voice": "Harry", "model": "eleven_v3", "text": "[grudgingly] ...Respect.", "bytes": 42336}
+{"t": "2026-10-27 18:40:31", "voice": "Harry", "model": "eleven_v3", "text": "[impressed] Your teacher'd be proud.", "bytes": 70560}
+{"t": "2026-10-27 18:40:32", "voice": "Harry", "model": "eleven_v3", "text": "[sarcastic] Not bad, Einstein.", "bytes": 74088}
+{"t": "2026-10-27 18:40:32", "voice": "Harry", "model": "eleven_v3", "text": "[sincerely] Stay in school, kid.", "bytes": 88200}
+{"t": "2026-10-27 18:40:32", "voice": "Harry", "model": "eleven_v3", "text": "[gruff] A plus. Beat it.", "bytes": 77616}
+{"t": "2026-10-27 18:40:33", "voice": "Harry", "model": "eleven_v3", "text": "[gruff] Gold star. Get outta here.", "bytes": 151704}
+{"t": "2026-10-27 18:40:33", "voice": "Harry", "model": "eleven_v3", "text": "[impressed] You showed your work. Nice.", "bytes": 109368}
+{"t": "2026-10-27 18:40:33", "voice": "Harry", "model": "eleven_v3", "text": "[cold] Shoulda studied.", "bytes": 81144}
+{"t": "2026-10-27 18:40:34", "voice": "Harry", "model": "eleven_v3", "text": "[cold] Wrong.", "bytes": 59976}
+{"t": "2026-10-27 18:40:34", "voice": "Harry", "model": "eleven_v3", "text": "[cold] Class dismissed.", "bytes": 45864}
+{"t": "2026-10-27 18:40:34", "voice": "Harry", "model": "eleven_v3", "text": "[cold] See me after class.", "bytes": 59976}
+{"t": "2026-10-27 18:40:35", "voice": "Harry", "model": "eleven_v3", "text": "[cold] That's a zero.", "bytes": 77616}
+{"t": "2026-10-27 18:40:35", "voice": "Harry", "model": "eleven_v3", "text": "[cold] Pencils down.", "bytes": 81144}
+{"t": "2026-10-27 18:40:35", "voice": "Harry", "model": "eleven_v3", "text": "[cold] Check your work next time.", "bytes": 88200}
+{"t": "2026-10-27 18:40:36", "voice": "Harry", "model": "eleven_v3", "text": "[cold] Time's up.", "bytes": 70560}
+{"t": "2026-10-27 18:40:36", "voice": "Harry", "model": "eleven_v3", "text": "[cold] Too slow.", "bytes": 67032}
+{"t": "2026-10-27 18:40:36", "voice": "Harry", "model": "eleven_v3", "text": "[confused] ...What.", "bytes": 67032}
+{"t": "2026-10-27 18:40:37", "voice": "Harry", "model": "eleven_v3", "text": "[shocked] Is that a Trapper Keeper?", "bytes": 81144}
+{"t": "2026-10-27 18:40:37", "voice": "Liam", "model": "eleven_v3", "text": "[nervous] Uh oh.", "bytes": 59976}
+{"t": "2026-10-27 18:40:38", "voice": "Harry", "model": "eleven_v3", "text": "[frustrated] Kevlar?! Man...", "bytes": 116424}
+{"t": "2026-10-27 18:40:38", "voice": "Liam", "model": "eleven_v3", "text": "[nervous] Not again...", "bytes": 81144}
+{"t": "2026-10-27 18:40:38", "voice": "Liam", "model": "eleven_v3", "text": "[relieved] Phew.", "bytes": 59976}
+{"t": "2026-10-27 18:40:38", "voice": "Liam", "model": "eleven_v3", "text": "[nervous] I didn't study!", "bytes": 74088}
+{"t": "2026-10-27 18:40:39", "voice": "Liam", "model": "eleven_v3", "text": "[cocky] Easy.", "bytes": 49392}
+{"t": "2026-10-27 18:40:40", "voice": "Liam", "model": "eleven_v3", "text": "[relieved] Nailed it.", "bytes": 81144}
+{"t": "2026-10-27 18:40:40", "voice": "Liam", "model": "eleven_v3", "text": "[pained] Aaagh!", "bytes": 102312}
+{"t": "2026-10-27 18:40:41", "voice": "Liam", "model": "eleven_v3", "text": "[spluttering] Hey! I'm soaked!", "bytes": 130536}
+{"t": "2026-10-27 18:40:41", "voice": "Liam", "model": "eleven_v3", "text": "[groggy] I'm okay!", "bytes": 98784}
+{"t": "2026-10-27 18:40:41", "voice": "Liam", "model": "eleven_v3", "text": "[screams] Aaah! Rat!", "bytes": 109368}
+{"t": "2026-10-27 18:40:42", "voice": "Liam", "model": "eleven_v3", "text": "[effort] Hyah!", "bytes": 56448}
+{"t": "2026-10-27 18:40:42", "voice": "Liam", "model": "eleven_v3", "text": "[effort] Hup!", "bytes": 49392}
+{"t": "2026-10-27 18:40:43", "voice": "Liam", "model": "eleven_v3", "text": "[groans] Aw, man. I left my backpack at school!", "bytes": 172872}
+{"t": "2026-10-27 18:40:43", "voice": "Liam", "model": "eleven_v3", "text": "[groans] Aw, man. I left my calculator at school!", "bytes": 183456}
+{"t": "2026-10-27 18:40:43", "voice": "Liam", "model": "eleven_v3", "text": "[groans] Aw, man. I left my lunch money at school!", "bytes": 176400}
+{"t": "2026-10-27 18:40:45", "voice": "Liam", "model": "eleven_v3", "text": "[groans] Aw, man. I left my permission slip at school!", "bytes": 162288}
+{"t": "2026-10-27 18:40:45", "voice": "Liam", "model": "eleven_v3", "text": "[groans] Aw, man. I left my homework at school!", "bytes": 179928}
+{"t": "2026-10-27 18:40:45", "voice": "Liam", "model": "eleven_v3", "text": "[groans] Aw, man. I left my retainer at school!", "bytes": 190512}
+{"t": "2026-10-27 18:40:46", "voice": "Thomas", "model": "eleven_v3", "text": "[warmly] State school material.", "bytes": 81144}
+{"t": "2026-10-27 18:40:46", "voice": "Thomas", "model": "eleven_v3", "text": "[impressed] M.I.T. called. They want you.", "bytes": 95256}
+{"t": "2026-10-27 18:40:47", "voice": "Thomas", "model": "eleven_v3", "text": "[hesitant] Your mom is... proud-ish.", "bytes": 236376}
+{"t": "2026-10-27 18:40:47", "voice": "Thomas", "model": "eleven_v3", "text": "[gently] Maybe get a tutor.", "bytes": 98784}
+{"t": "2026-10-27 18:40:48", "voice": "Thomas", "model": "eleven_v3", "text": "[disappointed] Your math teacher is disappointed.", "bytes": 123480}
+{"t": "2026-10-27 18:40:48", "voice": "Thomas", "model": "eleven_v3", "text": "[exasperated] Did you write your name?", "bytes": 84672}
+{"t": "2026-10-27 18:40:48", "voice": "Charlie", "model": "eleven_v3", "text": "[laughing] Made you look!", "bytes": 95256}

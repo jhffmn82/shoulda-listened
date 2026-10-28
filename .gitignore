@@ -5,3 +5,5 @@ __pycache__/
 out/
 # The packed atlas; js/data/sprites.js carries the same image.
 art/atlas.png
+# ElevenLabs takes, cached by tools/voices.py so reruns are free.
+art/voice/cache/

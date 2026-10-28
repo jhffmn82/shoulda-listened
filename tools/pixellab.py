@@ -253,6 +253,41 @@ def bbox(im, cut=40):
     return im.getchannel('A').point(lambda a: 255 if a > cut else 0).getbbox()
 
 
+def solid(im):
+    """Fills the holes PixelLab's background removal punched in a facade: wall and window pixels that
+    matched its background colour came back transparent, so the street behind showed through. Only
+    the sky above the roofline stays clear. Each hole takes the colour of the pixels round it, darkened,
+    and the big ones get a brick course so they read as wall."""
+    import numpy as np
+    px = np.array(im)
+    h, w = px.shape[:2]
+    opaque = px[..., 3] > 40
+    first = np.where(opaque.any(0), opaque.argmax(0), h)
+    roof = first.copy()
+    for x in range(w):
+        m = first[max(0, x - 3):x + 4].min()
+        if first[x] - m <= 6: roof[x] = m  # a gap between bricks, not a step in the roofline
+    hole = ~opaque & (np.arange(h)[:, None] >= roof[None, :])
+    seen = np.zeros_like(hole)
+    for sy, sx in zip(*np.nonzero(hole)):
+        if seen[sy, sx]: continue
+        comp, edge, stack = [], [], [(sy, sx)]
+        seen[sy, sx] = True
+        while stack:
+            y, x = stack.pop(); comp.append((y, x))
+            for ny, nx in ((y + 1, x), (y - 1, x), (y, x + 1), (y, x - 1)):
+                if 0 <= ny < h and 0 <= nx < w:
+                    if hole[ny, nx] and not seen[ny, nx]: seen[ny, nx] = True; stack.append((ny, nx))
+                    elif opaque[ny, nx]: edge.append(px[ny, nx, :3])
+        base = np.median(np.array(edge), 0) * .62 if edge else np.array([40, 34, 44])
+        big = len(comp) > 120
+        for y, x in comp:
+            c = base
+            if big and (y % 5 == 0 or (x + (y // 5 % 2) * 5) % 10 == 0): c = np.minimum(255, base * 1.22 + 6)
+            px[y, x, :3] = c; px[y, x, 3] = 255
+    return Image.fromarray(px)
+
+
 def pack():
     sheets, frames = [], {}
     entries = SHEET + [(f'near.{n}', f'picked/n-{n}.png', {'crop': c}) for n, c in NEAR.items()]
@@ -266,6 +301,7 @@ def pack():
         if o.get('crop'): ims = [i.crop(o['crop']) for i in ims]
         if o.get('trim'):
             bb = bbox(ims[0], 10); ims = [i.crop(bb) for i in ims]
+        if key.startswith(('mid.', 'near.')): ims = [solid(i) for i in ims]
         bb = bbox(ims[0]) or (0, 0, ims[0].width, ims[0].height)
         ax, ay = o.get('anchor') or ((bb[0] + bb[2]) // 2, bb[3] - 1)
         f = {'n': len(ims), 'w': ims[0].width, 'h': ims[0].height, 'ax': ax, 'ay': ay}
