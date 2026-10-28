@@ -154,3 +154,21 @@
 {"t": "2026-10-27 18:40:48", "voice": "Charlie", "model": "eleven_v3", "text": "[laughing] Made you look!", "bytes": 95256}
 {"t": "2026-10-27 19:23:29", "voice": "Liam", "model": "eleven_v3", "text": "[short pained grunt] Ugh!", "bytes": 67032}
 {"t": "2026-10-27 19:23:32", "voice": "Patrick", "model": "eleven_v3", "text": "[dramatic] Continue? ... Nine. ... Eight. ... Seven. ... Six. ... Five. ... Four. ... Three. ... Two. ... One. ... Zero.", "timed": true}
+{"t": "2026-10-28 15:03:20", "voice": "Patrick", "model": "eleven_v3", "text": "[excited] First grade!", "bytes": 74088}
+{"t": "2026-10-28 15:03:20", "voice": "Patrick", "model": "eleven_v3", "text": "[excited] Kindergarten!", "bytes": 77616}
+{"t": "2026-10-28 15:03:20", "voice": "Patrick", "model": "eleven_v3", "text": "[excited] Pick your grade!", "bytes": 98784}
+{"t": "2026-10-28 15:03:21", "voice": "Patrick", "model": "eleven_v3", "text": "[excited] Second grade!", "bytes": 77616}
+{"t": "2026-10-28 15:03:21", "voice": "Patrick", "model": "eleven_v3", "text": "[excited] Third grade!", "bytes": 81144}
+{"t": "2026-10-28 15:03:21", "voice": "Patrick", "model": "eleven_v3", "text": "[excited] Fourth grade!", "bytes": 70560}
+{"t": "2026-10-28 15:03:21", "voice": "Patrick", "model": "eleven_v3", "text": "[excited] Fifth grade!", "bytes": 88200}
+{"t": "2026-10-28 15:03:22", "voice": "Patrick", "model": "eleven_v3", "text": "[excited] Sixth grade!", "bytes": 77616}
+{"t": "2026-10-28 15:03:22", "voice": "Patrick", "model": "eleven_v3", "text": "[excited] Eighth grade!", "bytes": 59976}
+{"t": "2026-10-28 15:03:22", "voice": "Patrick", "model": "eleven_v3", "text": "[excited] Seventh grade!", "bytes": 74088}
+{"t": "2026-10-28 15:03:23", "voice": "Patrick", "model": "eleven_v3", "text": "[excited] High school!", "bytes": 52920}
+{"t": "2026-10-28 15:03:23", "voice": "Patrick", "model": "eleven_v3", "text": "[excited] S.A.T. prep!", "bytes": 67032}
+{"t": "2026-10-28 15:03:24", "voice": "Thomas", "model": "eleven_v3", "text": "[warmly] An A. Go show your mom.", "bytes": 105840}
+{"t": "2026-10-28 15:03:24", "voice": "Thomas", "model": "eleven_v3", "text": "[impressed] A plus! Gold star. Frame it.", "bytes": 144648}
+{"t": "2026-10-28 15:03:24", "voice": "Thomas", "model": "eleven_v3", "text": "[pleased] A B. Solid work. Keep it up.", "bytes": 119952}
+{"t": "2026-10-28 15:03:25", "voice": "Thomas", "model": "eleven_v3", "text": "[neutral] A C. Right down the middle.", "bytes": 84672}
+{"t": "2026-10-28 15:03:25", "voice": "Thomas", "model": "eleven_v3", "text": "[disappointed] A D. We should talk.", "bytes": 123480}
+{"t": "2026-10-28 15:03:26", "voice": "Thomas", "model": "eleven_v3", "text": "[exasperated] An F. Did you write your name?", "bytes": 105840}

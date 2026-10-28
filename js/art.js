@@ -5,7 +5,6 @@
 // built from shapes and small pixel maps.
 
 const OUT = '#140a18';
-const DEG = Math.PI / 180;
 
 // Turn an antialiased drawing into hard pixels: drop faint edges, snap colors to a palette, outline.
 function crisp(c, outline, palette) {
@@ -584,6 +583,7 @@ function buildFromAtlas(parent) {
   Sprites.gunman = { aim, sit: aim, fire: A.frames(g + '.fire'), nod: A.frames(g + '.nod'), mx: m.mx, my: m.my };
   for (const k of ['can', 'hydrant', 'meter', 'newsbox', 'payphone', 'mailbox', 'lamp', 'calc', 'coffee', 'keeper', 'cash']) if (A.has('prop.' + k)) Sprites[k] = A.image('prop.' + k);
   if (A.has('prop.can-down')) Sprites.canDown = A.image('prop.can-down');
+  if (A.has('prop.tree')) { Sprites.tree = A.image('prop.tree'); Sprites.treeM = flipX(Sprites.tree); }
   if (A.has('prop.rat')) Sprites.rat = [A.image('prop.rat'), A.image('prop.rat')];
 }
 

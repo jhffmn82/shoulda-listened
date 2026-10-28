@@ -57,6 +57,7 @@ ASSETS = {
     'coffee': dict(size=(32, 32), text=f'blue and white paper coffee cup with a lid, steam rising, item icon, {STYLE}'),
     'keeper': dict(size=(32, 32), text=f'neon pink teal and yellow 1990s three-ring binder, item icon, {STYLE}'),
     'cash': dict(size=(32, 32), text=f'a folded green dollar bill, item icon, {STYLE}'),
+    'tree': dict(size=(96, 128), text=f'one whole city street tree in summer, a leafy rounded green crown on a slim trunk, growing from a square tree pit with a low black iron guard rail, the full tree from the roots to the top, front view, {STYLE}'),
     'rat': dict(size=(32, 32), view='side', direction='east',
                 text=f'small gray city rat, a rodent on four legs with a long pink tail, running to the right, side view, {STYLE}',
                 clips={'run': ('scurrying fast on four legs', 4)}),
@@ -219,27 +220,32 @@ SHEET = [
     ('car.sedan', 'picked/sedan.png', {'anchor': (0, 63), 'mount': (86, 46), 'sill': 34}),
     ('car.taxi', 'picked/taxi.png', {'anchor': (0, 63)}),
 ] + [(f'prop.{n}', f'picked/{n}.png', {'trim': True}) for n in
-     ['can', 'can-down', 'hydrant', 'meter', 'newsbox', 'payphone', 'mailbox', 'lamp', 'calc', 'coffee', 'keeper', 'cash', 'rat']] + [
+     ['can', 'can-down', 'hydrant', 'meter', 'newsbox', 'payphone', 'mailbox', 'lamp', 'calc', 'coffee', 'keeper', 'cash', 'rat', 'tree']] + [
     ('bg.sky', 'picked/sky.png', {'crop': (0, 4, 400, 144)}),
     ('bg.roofs', 'picked/roofs.png', {'trim': True}),
     ('bg.sidewalk', 'picked/sidewalk.png', {'crop': (0, 22, 400, 60)}),
 ] + [(f'mid.{n[2:]}', f'picked/{n}.png', {'trim': True}) for n in
      ['b-liquor', 'b-bodega', 'b-pizza', 'b-video', 'b-laundry', 'b-barber', 'b-pawn', 'b-arcade', 'b-chinese', 'b-closed', 'b-brownstone', 'b-home', 'b-lot', 'b-alley']]
-# Near storefronts: crop to the building, bottom edge on the sidewalk line (filled in after picking).
-NEAR = {'liquor': (0, 0, 224, 133),
-        'bodega': (0, 0, 224, 136),
-        'pizza': (0, 0, 224, 135),
-        'video': (0, 0, 224, 136),
-        'laundry': (0, 0, 224, 135),
-        'barber': (0, 0, 192, 136),
-        'pawn': (0, 0, 192, 129),
-        'arcade': (0, 0, 224, 136),
-        'chinese': (0, 0, 192, 135),
-        'closed': (0, 0, 192, 133),
-        'brownstone': (0, 0, 160, 133),
-        'home': (0, 0, 160, 134),
-        'lot': (0, 0, 256, 133),
-        'alley': (0, 0, 64, 136)}
+# Near storefronts. PixelLab drew each one in a strip of street, so the crop keeps only the building
+# itself (its neighbours' slivers made ragged joins), bottom edge on the sidewalk line. `shop` is
+# where the storefront starts: above it is wall, rebuilt where background removal ate it, in `wall`
+# brick (or `stone`, for brownstones). `roof` is the top of a building lower than its picture;
+# `gate` is a roll-down gate to fill with slats; `clear` is painted sky to cut out, so the game's
+# own sky and the next block show through instead. `walls` are more stretches of wall, below `shop`.
+NEAR = {'liquor': dict(crop=(30, 0, 196, 133), shop=34),
+        'bodega': dict(crop=(28, 0, 198, 136), shop=28, wall=(122, 58, 44)),
+        'pizza': dict(crop=(20, 0, 204, 135), shop=30),
+        'video': dict(crop=(24, 0, 208, 136), shop=32, wall=(62, 72, 96)),
+        'laundry': dict(crop=(38, 0, 212, 135), shop=40),
+        'barber': dict(crop=(26, 0, 176, 136), shop=32, wall=(132, 64, 50)),
+        'pawn': dict(crop=(16, 0, 176, 133), shop=12, roof=12),
+        'arcade': dict(crop=(40, 0, 208, 136), shop=40, wall=(70, 62, 88)),
+        'chinese': dict(crop=(32, 0, 160, 135), shop=30, wall=(96, 48, 44)),
+        'closed': dict(crop=(32, 0, 168, 133), shop=18, wall=(104, 84, 74), gate=(36, 46, 164, 130)),
+        'brownstone': dict(crop=(0, 0, 142, 133), shop=98, wall=(110, 70, 54), stone=True),
+        'home': dict(crop=(38, 0, 137, 134), shop=50, wall=(122, 76, 56), stone=True),
+        'lot': dict(crop=(30, 0, 256, 133), shop=0, clear=(128, 0, 256, 54)),
+        'alley': dict(crop=(0, 0, 64, 136), shop=66, wall=(96, 56, 46))}
 
 
 def source(spec):
@@ -293,9 +299,111 @@ def solid(im):
     return Image.fromarray(px)
 
 
+def holes(hole):
+    """The 4-connected components of a mask, as lists of (y, x)."""
+    import numpy as np
+    h, w = hole.shape
+    seen, out = np.zeros_like(hole), []
+    for sy, sx in zip(*np.nonzero(hole)):
+        if seen[sy, sx]: continue
+        comp, stack = [], [(sy, sx)]
+        seen[sy, sx] = True
+        while stack:
+            y, x = stack.pop(); comp.append((y, x))
+            for ny, nx in ((y + 1, x), (y - 1, x), (y, x + 1), (y, x - 1)):
+                if 0 <= ny < h and 0 <= nx < w and hole[ny, nx] and not seen[ny, nx]: seen[ny, nx] = True; stack.append((ny, nx))
+        out.append(comp)
+    return out
+
+
+def facade(im, spec):
+    """A storefront made whole: a solid rectangle from its roof to the sidewalk, so nothing behind
+    shows through, with a cornice on top and a dark seam down each side where it meets the next one.
+    The art is laid over a wall drawn for it; the holes PixelLab's background removal made in the
+    wall become bricks (or mortar, where it took the mortar), and holes in the storefront take the
+    colour round them."""
+    import numpy as np
+    x0, y0 = spec['crop'][:2]
+    px = np.array(im).astype(float)
+    h, w = px.shape[:2]
+    sky = np.zeros((h, w), bool)
+    if spec.get('clear'):
+        a, b, c, d = spec['clear']; sky[max(0, b - y0):d - y0, max(0, a - x0):c - x0] = True; px[sky, 3] = 0
+    roof, shop = spec.get('roof', 0), spec['shop']
+    alpha = px[..., 3] / 255
+    rgb = px[..., :3]
+    opaque = alpha > .9
+    rng = np.random.default_rng(sum(map(ord, str(spec['crop']))))
+    # The wall: given, or the lighter half of what's left of it.
+    zone = opaque[roof:shop]
+    if spec.get('wall'): wall = np.array(spec['wall'], float)
+    else:
+        cols = rgb[roof:shop][zone]
+        lum = cols @ [.3, .59, .11]
+        wall = np.median(cols[lum >= np.median(lum)], 0) if len(cols) else np.array([90, 60, 50.])
+    mortar = wall * .55
+    yy, xx = np.mgrid[0:h, 0:w]
+    if spec.get('stone'):
+        # Brownstone: smooth blocks, a joint every 8 rows, a little grain.
+        back = np.repeat(np.repeat(wall[None, None], h, 0), w, 1) * (1 + rng.normal(0, .025, (h, w, 1)))
+        back[(yy % 8) == 7] = wall * .8
+    else:
+        # Running bond: 7 x 3 bricks in 8 x 4 cells, each brick its own shade.
+        row = yy // 4
+        cell = (xx + (row % 2) * 4) // 8
+        shade = rng.uniform(.84, 1.1, (h // 4 + 2, w // 8 + 3))[row, cell]
+        back = wall[None, None] * shade[..., None]
+        back[((yy % 4) == 3) | (((xx + (row % 2) * 4) % 8) == 7)] = mortar
+    filled = np.zeros((h, w), bool)
+    # Holes in the wall.
+    wallmask = np.zeros((h, w), bool); wallmask[roof:shop] = True
+    for a, b, c, d in spec.get('walls', []): wallmask[max(0, b - y0):d - y0, max(0, a - x0):c - x0] = True
+    for comp in holes(~opaque & ~sky & wallmask):
+        ys, xs = np.array(comp).T
+        bw, bh = np.ptp(xs) + 1, np.ptp(ys) + 1
+        if len(comp) <= 40 and bw <= 12 and bh <= 6: c = wall * rng.uniform(.86, 1.08)      # one brick gone
+        elif len(comp) < .35 * bw * bh: c = mortar                                         # the mortar between them
+        else: c = None                                                                     # a stretch of wall
+        if c is None: rgb[ys, xs] = rgb[ys, xs] * alpha[ys, xs, None] + back[ys, xs] * (1 - alpha[ys, xs, None])
+        else: rgb[ys, xs] = rgb[ys, xs] * alpha[ys, xs, None] + c * (1 - alpha[ys, xs, None])
+        filled[ys, xs] = True
+    # A roll-down gate: slats.
+    if spec.get('gate'):
+        a, b, c, d = spec['gate']
+        g = np.zeros((h, w), bool); g[b - y0:d - y0, a - x0:c - x0] = True
+        slat = np.where((yy % 3) == 2, 62, 92)[..., None] * np.array([1, 1, 1.08])
+        m = g & ~opaque
+        rgb[m] = rgb[m] * alpha[m, None] + slat[m] * (1 - alpha[m, None]); filled |= m
+    # Holes in the storefront take the colour round them, darkened, like the back of a shop window.
+    below = np.zeros((h, w), bool); below[max(roof, shop):] = True; below &= ~wallmask
+    for comp in holes(~opaque & ~filled & ~sky & below):
+        ys, xs = np.array(comp).T
+        edge = [rgb[y, x] for y, x in comp for ny, nx in ((y + 1, x), (y - 1, x), (y, x + 1), (y, x - 1))
+                if 0 <= ny < h and 0 <= nx < w and opaque[ny, nx]]
+        c = np.median(np.array(edge), 0) * .62 if edge else mortar
+        rgb[ys, xs] = rgb[ys, xs] * alpha[ys, xs, None] + c * (1 - alpha[ys, xs, None])
+        filled[ys, xs] = True
+    a = np.where(opaque | filled, 255, 0)
+    a[:roof] = np.where(opaque[:roof], 255, 0)
+    # The roofline: a stone cornice with a shadow under it, unless the art has its own (pawn).
+    if not roof:
+        top = a[0] > 0
+        stone = np.minimum(255, wall * .5 + 70)
+        for y, k in ((0, .7), (1, 1), (2, 1), (3, .8), (4, .45)): rgb[y, top] = stone * k
+        rgb[1:3, ::4][:, top[::4]] = stone * .86
+        a[0:5, top] = 255
+    # The seams: a dark line down the left edge, a lighter one beside it, and a shadow on the right.
+    solid = a[:, 0] > 0
+    rgb[solid, 0] = rgb[solid, 0] * .35; rgb[solid, 1] = np.minimum(255, rgb[solid, 1] * 1.12)
+    solid = a[:, -1] > 0
+    rgb[solid, -1] = rgb[solid, -1] * .55
+    out = np.dstack([np.clip(rgb, 0, 255), a]).astype(np.uint8)
+    return Image.fromarray(out)
+
+
 def pack():
     sheets, frames = [], {}
-    entries = SHEET + [(f'near.{n}', f'picked/n-{n}.png', {'crop': c}) for n, c in NEAR.items()]
+    entries = SHEET + [(f'near.{n}', f'picked/n-{n}.png', {'crop': s['crop'], 'facade': s}) for n, s in NEAR.items()]
     for key, spec, o in entries:
         src = source(spec)
         if not src:
@@ -306,7 +414,8 @@ def pack():
         if o.get('crop'): ims = [i.crop(o['crop']) for i in ims]
         if o.get('trim'):
             bb = bbox(ims[0], 10); ims = [i.crop(bb) for i in ims]
-        if key.startswith(('mid.', 'near.')): ims = [solid(i) for i in ims]
+        if o.get('facade'): ims = [facade(i, o['facade']) for i in ims]
+        elif key.startswith('mid.'): ims = [solid(i) for i in ims]
         bb = bbox(ims[0]) or (0, 0, ims[0].width, ims[0].height)
         ax, ay = o.get('anchor') or ((bb[0] + bb[2]) // 2, bb[3] - 1)
         f = {'n': len(ims), 'w': ims[0].width, 'h': ims[0].height, 'ax': ax, 'ay': ay}

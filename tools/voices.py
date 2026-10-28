@@ -240,6 +240,8 @@ GUNMAN = [
 ]
 FORGOT = {'backpack': 'my backpack', 'calculator': 'my calculator', 'lunch-money': 'my lunch money', 'retainer': 'my retainer',
           'permission-slip': 'my permission slip', 'homework': 'my homework'}
+GRADE_NAMES = {'k': 'Kindergarten', '1': 'First grade', '2': 'Second grade', '3': 'Third grade', '4': 'Fourth grade', '5': 'Fifth grade',
+               '6': 'Sixth grade', '7': 'Seventh grade', '8': 'Eighth grade', 'hs': 'High school', 'sat': 'S.A.T. prep'}
 SCRIPT = [
     ('title', 'announcer', '[shouting] Shoulda listened... to your MATH TEACHER!'),
     ('insert-coin', 'announcer', '[excited] Insert coin!'),
@@ -295,6 +297,16 @@ SCRIPT = [
     ('sat-350', 'teacher', '[disappointed] Your math teacher is disappointed.'),
     ('sat-0', 'teacher', '[exasperated] Did you write your name?'),
     ('made-you-look', 'driver', '[laughing] Made you look!'),
+    # Picking a grade.
+    ('pick-grade', 'announcer', '[excited] Pick your grade!'),
+    *[(f'grade-{k}', 'announcer', f'[excited] {v}!') for k, v in GRADE_NAMES.items()],
+    # The report card at game over, for every grade but SAT prep.
+    ('card-a-plus', 'teacher', '[impressed] A plus! Gold star. Frame it.'),
+    ('card-a', 'teacher', '[warmly] An A. Go show your mom.'),
+    ('card-b', 'teacher', '[pleased] A B. Solid work. Keep it up.'),
+    ('card-c', 'teacher', '[neutral] A C. Right down the middle.'),
+    ('card-d', 'teacher', '[disappointed] A D. We should talk.'),
+    ('card-f', 'teacher', '[exasperated] An F. Did you write your name?'),
 ]
 
 # Lines said in one take and cut apart by ElevenLabs' word timings, so they share one tone and pace.

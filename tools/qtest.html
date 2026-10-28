@@ -1,0 +1,39 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Question test</title>
+<style>body{background:#202030;margin:0;color:#ccc;font:12px monospace}</style></head>
+<body>
+<script src="../js/core.js"></script><script src="../js/font.js"></script><script src="../js/figures.js"></script>
+<script src="../js/questions.js"></script>
+<script src="../js/grades/k2.js"></script><script src="../js/grades/g35.js"></script><script src="../js/grades/g68.js"></script>
+<script src="../js/grades/hs.js"></script><script src="../js/grades/sat.js"></script>
+<script src="../js/quiz.js"></script>
+<script>
+// The question banks without the rest of the game, for tools/qtest.py: the self-test, and quiz
+// panels and chalkboards drawn exactly as the game draws them.
+const Game = { t: 0 };
+const plain = b => ({ grade: b.grade, kind: b.kind, level: b.level, why: b.why,
+  text: b.q && b.q.text, choices: b.q && b.q.choices, answer: b.q && b.q.answer, steps: b.q && b.q.steps });
+window.selfTest = (ids, n) => Questions.selfTest(n, ids && ids.length ? ids : null).map(plain);
+window.grades = () => Questions.grades.map(g => ({ id: g.id, label: g.label, kinds: Object.keys(g.kinds).length }));
+// One 384 x 224 picture per sample: the panel as it looks mid-quiz (or the chalkboard after a wrong answer).
+window.cells = (id, o = {}) => {
+  const g = Questions.byId(id), kinds = o.kinds && o.kinds.length ? o.kinds : Object.keys(g.kinds), out = [];
+  kinds.forEach((kind, i) => {
+    // A kind held back to a later lap is shown from that lap on.
+    const first = g.pools ? 1 : g.min[kind] || 1;
+    const levels = o.level ? [Math.max(o.level, first)] : o.all ? [1, 2, 3, 4].filter(d => d >= first) : [Math.max(first, 1 + i % 4)];
+    for (const level of levels) {
+      const q = Object.assign(g.kinds[kind](level), { kind, level });
+      const c = canvas(W, H), x = c.getContext('2d');
+      x.fillStyle = '#2a2440'; x.fillRect(0, 0, W, H);
+      const L = Quiz.layout(q, { bar: true });
+      if (o.board) Quiz.drawBoard(x, q, (q.answer + 1) % 4, L.figC, 1, false);
+      else Quiz.draw(x, { q, sel: 0, elim: [], phase: 'quiz', pick: null, time: 30, coffee: false }, L, 12);
+      Font.draw(x, `${g.id} ${kind} d${level}  ${Questions.check(q) || 'ok'}`, 4, 214, Questions.check(q) ? '#ff6060' : '#80ff80', { outline: '#000' });
+      out.push(c.toDataURL());
+    }
+  });
+  return out;
+};
+window.ready = true;
+</script></body></html>

@@ -294,7 +294,7 @@ const World = (() => {
   function makeStreet(loop) {
     const r = seeded(1000 + loop * 77);
     const length = 3300 + Math.min(4, loop - 1) * 350;
-    const S = { length, buildings: [], props: [], lamps: [], manholes: [], cans: [], encounters: [] };
+    const S = { length, buildings: [], props: [], lamps: [], manholes: [], cans: [], encounters: [], trees: [] };
     let x = -40, lastShop = -1, lastKind = '';
     if (buildPix()) {
       const near = pix.near.filter(b => b.k !== 'near.home'), home = pix.near.find(b => b.k === 'near.home');
@@ -304,6 +304,10 @@ const World = (() => {
         prev = last; last = b.k;
         S.buildings.push({ x, c: b.c, h: b.c.height, anims: [], kind: b.k });
         x += b.c.width;
+      }
+      // Street trees stand on some of the joins between buildings, never two close together.
+      if (Sprites.tree) for (const b of S.buildings.slice(1)) {
+        if (b.x > 150 && r() < .45 && !S.trees.some(t => b.x - t.x < 190)) S.trees.push({ x: b.x, flip: r() < .5 });
       }
       S.buildings.push({ x, c: home.c, h: home.c.height, anims: [], kind: 'home' });
       S.homeX = x + Math.round(home.c.width / 2);
@@ -341,10 +345,11 @@ const World = (() => {
     const n = Math.min(8, 4 + loop);
     for (let i = 0; i < n; i++) S.encounters.push(Math.round(380 + (S.homeX - 640) * i / (n - 1 || 1) + (r() - .5) * 90));
     // Lamps, then small props and trash cans in the gaps.
-    for (let lx = 90 + r() * 60; lx < S.length - 60; lx += 170 + r() * 70) S.lamps.push(Math.round(lx));
+    const nearTree = (x, d) => S.trees.some(t => Math.abs(t.x - x) < d);
+    for (let lx = 90 + r() * 60; lx < S.length - 60; lx += 170 + r() * 70) if (!nearTree(lx, 44)) S.lamps.push(Math.round(lx));
     const PROPS = ['hydrant', 'meter', 'newsbox', 'payphone', 'mailbox', 'meter', 'hydrant'];
     for (let px = 140; px < S.length - 120; px += 70 + r() * 90) {
-      if (S.lamps.some(l => Math.abs(l - px) < 26)) continue;
+      if (S.lamps.some(l => Math.abs(l - px) < 26) || nearTree(px, 30)) continue;
       if (r() < .45) S.cans.push(Math.round(px));
       else S.props.push({ k: PROPS[Math.floor(r() * PROPS.length)], x: Math.round(px) });
     }
@@ -442,6 +447,11 @@ const World = (() => {
       tile(ctx, pix.walk, -cam, WALK_TOP);
     } else tile(ctx, ground, -cam, WALK_TOP);
     for (const m of S.manholes) { const mx = Math.round(m - cam); if (mx > -20 && mx < W) ctx.drawImage(Sprites.manhole, mx, ROAD + 16); }
+    for (const t of S.trees || []) {
+      const img = t.flip ? Sprites.treeM : Sprites.tree, tx = Math.round(t.x - cam - img.width / 2);
+      if (tx > W || tx + img.width < 0) continue;
+      ctx.drawImage(img, tx, PROP_BASE + 3 - img.height);
+    }
     for (const p of S.props) {
       const px = Math.round(p.x - cam), img = Sprites[p.k];
       if (px < -20 || px > W + 20) continue;

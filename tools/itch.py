@@ -88,8 +88,10 @@ def images():
         # The title screen, with the logo dropped in and INSERT COIN lit.
         page.evaluate('__game.Game.go(__game.Attract, "title")')
         wait('__game.Attract.t > 1.4 && Math.floor(__game.Game.t * 2.4) % 2 === 0'); shot('title')
-        # Into a game, with a score worth showing.
-        page.keyboard.press('Enter'); time.sleep(3.4)
+        # The grade picker, then into an SAT prep game, with a score worth showing.
+        page.keyboard.press('Enter'); time.sleep(1.4); shot('grade-select')
+        page.evaluate('__game.Select.cur = __game.Select.list.findIndex(g => g.id === "sat")')
+        page.keyboard.press('Enter'); wait('__game.Game.scene === __game.Play'); time.sleep(2.4)
         page.evaluate('(() => { const P = __game.Play; P.score = 48200; P.inv.calc = 2; P.inv.coffee = true; P.inv.keeper = true; P.kicked = true; })()')
         # The stick-up: hero's hands up, gun out, "YO. POP QUIZ."
         page.evaluate(f'({JUMP})(1)')

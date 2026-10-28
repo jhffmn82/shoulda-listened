@@ -26,7 +26,10 @@ const Questions = (() => {
   function numeric(answer, wrongs, fmt = show) {
     const vals = [answer];
     const ints = Number.isInteger(answer);
-    const ok = v => Number.isFinite(v) && (!ints || Number.isInteger(v)) &&
+    // A wrong answer has to print exactly: show() rounds to 2 places when nothing else fits.
+    const exact = v => fmt !== show || Number.isInteger(v) || Math.abs(Math.round(v * 100) / 100 - v) < 1e-9 ||
+      [...Array(23)].some((_, i) => Math.abs(v * (i + 2) - Math.round(v * (i + 2))) < 1e-9);
+    const ok = v => Number.isFinite(v) && (!ints || Number.isInteger(v)) && exact(v) &&
       !vals.some(u => Math.abs(u - v) < 1e-9 || fmt(u) === fmt(v));
     for (const w of wrongs) if (vals.length < 4 && ok(w)) vals.push(w);
     for (let k = 1; vals.length < 4; k++) for (const w of [answer + k, answer - k, answer + 2 * k]) if (vals.length < 4 && ok(w)) vals.push(w);
@@ -297,26 +300,92 @@ const Questions = (() => {
     ['system', 'inequality', 'mixture', 'mean', 'pythag', 'exponents', 'quadratic', 'funcEval', 'percent', 'bothSides',
       'rightTrig', 'similar', 'parabola', 'graphSystem', 'parallelLines', 'graphLine'],
   ];
-  let recent = [];
-  function make(level) {
-    level = clamp(level, 1, 4);
-    const pool = POOLS[level];
-    let kind; do kind = pick(pool); while (recent.includes(kind));
-    recent = [kind, ...recent].slice(0, 4);
-    return Object.assign(G[kind](level), { kind, level });
+
+  // ---- Grades. Each one is a bank of generators, d => question, where d (1 to 4) is how hard
+  // within the grade: it climbs with each lap of the block. A kind can wait for a harder lap with
+  // `min: { kind: d }`. The files in js/grades/ add the banks; SAT prep is the generators above.
+  const GRADES = [];
+  function grade(def) {
+    def = Object.assign({ min: {}, clock: [30, 25, 22, 18, 15] }, def);
+    const at = GRADES.findIndex(g => g.id === def.id);
+    if (at >= 0) GRADES[at] = def; else GRADES.push(def);
+    GRADES.sort((a, b) => a.n - b.n);
+    return def;
   }
-  // Generate many of every kind and report anything malformed (figures are drawn once each too).
-  function selfTest(n = 300) {
-    const bad = [], test = canvas(120, 72);
-    for (const kind in G) for (let level = 1; level <= 4; level++) for (let i = 0; i < n; i++) {
-      const q = G[kind](level);
-      if (q.fig && i === 0) q.fig(test.getContext('2d'), 120, 72);
-      const why = q.choices.length !== 4 ? 'count' : new Set(q.choices).size !== 4 ? 'duplicate' :
-        !(q.answer >= 0 && q.answer < 4) ? 'answer' : q.choices.some(c => !c || /NaN|undefined|Infinity/.test(c)) ? 'value' :
-          /NaN|undefined|Infinity/.test(q.text + q.steps.join()) ? 'text' : null;
-      if (why) { bad.push({ kind, level, why, q }); if (bad.length > 20) return bad; }
+  grade({ id: 'sat', n: 100, label: 'SAT PREP', short: 'SAT', kinds: G, pools: POOLS });
+  const byId = id => GRADES.find(g => g.id === id) || GRADES[GRADES.length - 1];
+  // More kinds for a grade already defined. For SAT prep, `levels` says which laps each kind joins
+  // (all four if left out); for the others it's the same as `min`.
+  function extend(id, kinds, levels = {}) {
+    const g = byId(id);
+    Object.assign(g.kinds, kinds);
+    if (g.pools) for (const k in kinds) for (const d of levels[k] || [1, 2, 3, 4]) g.pools[d].push(k);
+    else Object.assign(g.min, levels);
+  }
+  function pool(g, d) { return g.pools ? g.pools[d] : Object.keys(g.kinds).filter(k => (g.min[k] || 1) <= d); }
+
+  let recent = [];
+  function make(id, level) {
+    const g = byId(id);
+    level = clamp(level, 1, 4);
+    const p = pool(g, level);
+    let kind, tries = 0; do kind = pick(p); while (recent.includes(kind) && ++tries < 40);
+    recent = [kind, ...recent].slice(0, Math.min(6, p.length >> 1));
+    // The right answer goes in a slot picked at random, so no letter is a safe guess. Numbers come
+    // smallest first, which puts the right one in the middle more often than not, so draw again a
+    // few times for one that lands there; failing that, swap it into the slot.
+    const slot = randInt(0, 3);
+    let q;
+    for (let i = 0; i < 8; i++) { q = g.kinds[kind](level); if (q.answer === slot) break; }
+    // Choices that name pictures 1 to 4 stay in order: which picture is right is already random.
+    const pictures = q.choices.every((c, i) => c === String(i + 1));
+    if (q.answer !== slot && !pictures) {
+      [q.choices[slot], q.choices[q.answer]] = [q.choices[q.answer], q.choices[slot]];
+      q.answer = slot;
+    }
+    return Object.assign(q, { kind, level, grade: g.id });
+  }
+
+  // Generate many of every kind and report anything malformed: not four different choices, a bad
+  // answer index, NaN and friends, a letter the arcade font can't draw, or (with Quiz loaded) a
+  // question that doesn't fit the quiz panel or the chalkboard. Figures are drawn once each too.
+  const DRAWABLE = ch => ch in GLYPHS;
+  const markup = s => String(s).replace(/\^\{([^}]*)\}/g, '$1').replace(/\^(.)/g, '$1');
+  function check(q) {
+    if (!q || !Array.isArray(q.choices) || q.choices.length !== 4) return 'count';
+    if (new Set(q.choices).size !== 4) return 'duplicate';
+    if (!(Number.isInteger(q.answer) && q.answer >= 0 && q.answer < 4)) return 'answer';
+    if (q.choices.some(c => typeof c !== 'string' || !c || /NaN|undefined|Infinity|null|\[object/.test(c))) return 'value';
+    if (!q.text || !Array.isArray(q.steps) || !q.steps.length) return 'missing';
+    const all = [q.text, q.topic, ...q.choices, ...q.steps].join('\n');
+    if (/NaN|undefined|Infinity|\[object/.test(all)) return 'text';
+    const bad = [...markup(all)].filter(ch => ch !== '\n' && !DRAWABLE(ch));
+    if (bad.length) return 'glyph ' + [...new Set(bad)].join('');
+    // Raised characters come from their own small set.
+    const raised = [...all.matchAll(/\^\{([^}]*)\}|\^(.)/g)].flatMap(m => [...(m[1] || m[2])]).filter(ch => !(ch in SUP));
+    if (raised.length) return 'raised glyph ' + [...new Set(raised)].join('');
+    if (typeof Quiz !== 'undefined') { const why = Quiz.check(q); if (why) return why; }
+    return null;
+  }
+  function selfTest(n = 300, ids = null) {
+    const bad = [], test = canvas(160, 90);
+    for (const g of GRADES) {
+      if (ids && !ids.includes(g.id)) continue;
+      for (const kind in g.kinds) for (let level = 1; level <= 4; level++) {
+        if (g.pools ? !g.pools[level].includes(kind) && level > 1 : (g.min[kind] || 1) > level) continue;
+        for (let i = 0; i < n; i++) {
+          let q, why;
+          try {
+            q = g.kinds[kind](level);
+            if (q && q.fig && i < 3) { const [w, h] = q.size || [100, 56]; q.fig(test.getContext('2d'), w, h); }
+            why = check(q);
+          } catch (e) { why = 'throws ' + e.message; }
+          if (why) { bad.push({ grade: g.id, kind, level, why, q }); if (bad.length > 60) return bad; break; }
+        }
+      }
     }
     return bad;
   }
-  return { make, selfTest, kinds: Object.keys(G), G };
+  const kit = { nz, signed, minus, term, lin, poly, solveStep, show, numeric, textual };
+  return { make, selfTest, check, grade, extend, grades: GRADES, byId, kit, kinds: Object.keys(G), G };
 })();

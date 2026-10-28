@@ -8,6 +8,7 @@ const CURB = 180;                // top of the curb
 const ROAD = 185;                // top of the street
 const TIRES = 219;               // y where car tires touch the street
 
+const DEG = Math.PI / 180;
 const rand = Math.random;
 const randInt = (a, b) => a + Math.floor(rand() * (b - a + 1));
 const pick = a => a[Math.floor(rand() * a.length)];
@@ -57,7 +58,7 @@ const KEYS = {
   enter: ['Enter', 'NumpadEnter'], back: ['Backspace'],
   // Moving between answers uses the arrows only, so the letter keys can answer.
   navL: ['ArrowLeft'], navR: ['ArrowRight'], navU: ['ArrowUp'], navD: ['ArrowDown'],
-  mute: ['KeyM', 'Digit0'], parent: ['KeyP'], pause: ['Escape'], full: ['KeyF'],
+  mute: ['KeyM', 'Digit0'], parent: ['KeyP'], pause: ['Escape'], full: ['KeyF'], read: ['KeyR'],
 };
 const Input = {
   held: new Set(), hit: new Set(),        // keyboard codes down now / pressed this frame

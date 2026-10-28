@@ -265,10 +265,12 @@ const Sound = (() => {
   function hush() { queue = []; if (talking) { const t = talking; talking = null; t.src.stop(); duck(false); } }
 
   // The browser's own voice, for a line that wasn't recorded.
-  let sv = null;
+  let sv = null, rv = null;
   function pickVoice() {
-    const vs = window.speechSynthesis ? speechSynthesis.getVoices() : [];
-    sv = vs.find(v => /^en/i.test(v.lang) && /david|mark|guy|male|fred|daniel/i.test(v.name)) || vs.find(v => /^en/i.test(v.lang)) || null;
+    const vs = window.speechSynthesis ? speechSynthesis.getVoices() : [], en = vs.filter(v => /^en/i.test(v.lang));
+    sv = en.find(v => /david|mark|guy|male|fred|daniel/i.test(v.name)) || en[0] || null;
+    // A clear, friendly voice for reading questions to young players.
+    rv = en.find(v => /aria|jenny|zira|samantha|google us english|female/i.test(v.name)) || en.find(v => /en-US/i.test(v.lang)) || en[0] || null;
   }
   if (window.speechSynthesis) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
   function say(text, pitch = .3) {
@@ -280,6 +282,19 @@ const Sound = (() => {
     speechSynthesis.speak(u);
   }
 
+  // A question read aloud, with the music down while it's read. Returns false when it can't be.
+  function read(text) {
+    if (muted || !window.speechSynthesis) return false;
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = .92; u.pitch = 1.05; u.volume = 1;
+    if (rv) u.voice = rv;
+    u.onstart = () => { if (ac) duck(true); }; u.onend = u.onerror = () => { if (ac && !talking) duck(false); };
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
+    return true;
+  }
+  function quiet() { if (window.speechSynthesis) speechSynthesis.cancel(); if (!talking && ac) duck(false); }
+
   function toggleMute() {
     muted = !muted;
     Store.set('mute', muted);
@@ -288,5 +303,5 @@ const Sound = (() => {
     if (muted && ac) hush();
     return muted;
   }
-  return { init, play, music, stopMusic, say, voice, hush, toggleMute, get muted() { return muted; }, get song() { return song && song.name; }, get talking() { return !!talking; } };
+  return { init, play, music, stopMusic, say, read, quiet, voice, hush, toggleMute, get muted() { return muted; }, get song() { return song && song.name; }, get talking() { return !!talking; } };
 })();

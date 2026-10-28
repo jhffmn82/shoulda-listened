@@ -63,5 +63,5 @@
   }
   // The PixelLab atlas is an embedded image: wait for it, then build every sprite.
   Atlas.load().then(() => { buildArt(Game.parent); Game.start(); requestAnimationFrame(frame); });
-  window.__game = { Game, Play, Attract, Entry, Questions, Input };
+  window.__game = { Game, Play, Attract, Select, Entry, Questions, Quiz, Input };
 })();

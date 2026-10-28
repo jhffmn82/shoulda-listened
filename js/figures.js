@@ -60,6 +60,43 @@ const Figures = (() => {
     }
   }
   const dot = (c, p, col) => { c.fillStyle = col; c.fillRect(p[0] - 1, p[1] - 1, 3, 3); };
+  const box = (c, x, y, w, h, col) => { c.fillStyle = col; c.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
+  // Filled shapes, a row of pixels at a time, so the edges stay crisp.
+  function disc(c, cx, cy, r, col) {
+    c.fillStyle = col;
+    for (let y = -r; y <= r; y++) { const w = Math.round(Math.sqrt(Math.max(0, r * r - y * y))); c.fillRect(Math.round(cx - w), Math.round(cy + y), w * 2 + 1, 1); }
+  }
+  function fillPoly(c, pts, col) {
+    c.fillStyle = col;
+    const ys = pts.map(p => p[1]), top = Math.round(Math.min(...ys)), bot = Math.round(Math.max(...ys));
+    for (let y = top; y <= bot; y++) {
+      const xs = [];
+      for (let i = 0; i < pts.length; i++) {
+        const [x0, y0] = pts[i], [x1, y1] = pts[(i + 1) % pts.length];
+        if ((y0 <= y + .5 && y1 > y + .5) || (y1 <= y + .5 && y0 > y + .5)) xs.push(x0 + (y + .5 - y0) / (y1 - y0) * (x1 - x0));
+      }
+      xs.sort((a, b) => a - b);
+      for (let i = 0; i + 1 < xs.length; i += 2) c.fillRect(Math.round(xs[i]), y, Math.max(1, Math.round(xs[i + 1]) - Math.round(xs[i])), 1);
+    }
+  }
+  const outlinePoly = (c, pts, col) => pts.forEach((p, i) => line(c, ...p, ...pts[(i + 1) % pts.length], col));
+  // Little pictures to count: 9 x 9 pixel art, one letter per colour.
+  const PAL = { k: '#101018', r: '#e83838', g: '#48c048', y: '#f8d840', b: '#4890f0', o: '#f89030', w: '#f8f8f8', n: '#c88a48', c: '#4a2410', p: '#f070c0', v: '#a060e0', s: '#a8b0c0' };
+  const ICONS = {
+    apple: ['....cg...', '...cg....', '.krrkrrk.', 'krwrrrrrk', 'krwrrrrrk', 'krrrrrrrk', 'krrrrrrrk', '.krrrrrk.', '..kk.kk..'],
+    star: ['....y....', '....y....', '...yyy...', 'yyyyyyyyy', '.yyyyyyy.', '..yyyyy..', '..yyyyy..', '.yy...yy.', 'y.......y'],
+    ball: ['..kkkkk..', '.kbbwrrk.', 'kbbbwrrrk', 'kbbbwrrrk', 'kwwwwwwwk', 'kyyywgggk', 'kyyywgggk', '.kyywggk.', '..kkkkk..'],
+    fish: ['.........', '...ooo..o', '.oooooooo', 'okoooooo.', 'oooooooo.', '.oooooooo', '...ooo..o', '.........', '.........'],
+    cookie: ['..nnnnn..', '.nnnnnnn.', 'nncnnnnnn', 'nnnnncnnn', 'ncnnnnnnn', 'nnnnnnncn', 'nnnncnnnn', '.nnnnnnn.', '..nnnnn..'],
+    flower: ['...ppp...', '..ppppp..', '.pppyppp.', '..ppppp..', '...ppp...', '....g....', '..g.g....', '...gg.g..', '....gg...'],
+    heart: ['.rr...rr.', 'rrrr.rrrr', 'rrrrrrrrr', 'rrrrrrrrr', '.rrrrrrr.', '..rrrrr..', '...rrr...', '....r....', '.........'],
+    block: ['kkkkkkkkk', 'kbbbbbbwk', 'kbbbbbbbk', 'kbbbbbbbk', 'kbbbbbbbk', 'kbbbbbbbk', 'kbbbbbbbk', 'kbbbbbbbk', 'kkkkkkkkk'],
+    balloon: ['..vvvv...', '.vvvvvv..', 'vvwvvvvv.', 'vvwvvvvv.', 'vvvvvvvv.', '.vvvvvv..', '..vvvv...', '...vv....', '....s....'],
+  };
+  const ICON_NAMES = { apple: 'apples', star: 'stars', ball: 'balls', fish: 'fish', cookie: 'cookies', flower: 'flowers', heart: 'hearts', block: 'blocks', balloon: 'balloons' };
+  function icon(c, name, x, y) {
+    ICONS[name].forEach((row, j) => { for (let i = 0; i < row.length; i++) if (row[i] !== '.') { c.fillStyle = PAL[row[i]]; c.fillRect(Math.round(x) + i, Math.round(y) + j, 1, 1); } });
+  }
 
   // Same choice builders as questions.js: numeric choices smallest first.
   function numeric(answer, wrongs, fmt = String) {
@@ -204,7 +241,7 @@ const Figures = (() => {
     if (askEq) {
       return Object.assign(base, {
         text: 'Which equation describes the line in the graph?',
-        ...textual(eq(m, b), [eq(-m, b), eq(m, -b), eq(1 / m, b), eq(-m, -b), eq(m, b + 2), eq(-1 / m, b)].filter(e => e !== eq(m, b))),
+        ...textual(eq(m, b), [eq(-m, b), eq(m, -b), eq(1 / m, b), eq(-m, -b), eq(m, b + 2), eq(-1 / m, b), eq(m, b - 2), eq(-m, b + 1), eq(m + 1, b)].filter(e => e !== eq(m, b))),
         steps: [`It crosses the y-axis at ${b}, so b = ${b}.`, `Rise over run between two grid points: ${show(m)}`, `So ${eq(m, b)}`],
       });
     }
@@ -238,7 +275,7 @@ const Figures = (() => {
     if (ask === 'vertex') {
       return {
         topic: 'QUADRATICS', text: 'What are the coordinates of the vertex of the parabola shown?',
-        ...textual(pt(hx, k), [pt(k, hx), pt(-hx, k), pt(hx, -k), pt(0, k)].filter(s => s !== pt(hx, k))),
+        ...textual(pt(hx, k), [pt(k, hx), pt(-hx, k), pt(hx, -k), pt(0, k), pt(hx + 1, k), pt(hx, k + 1), pt(hx - 1, k - 2)].filter(s => s !== pt(hx, k))),
         steps: [`The vertex is the turning point: the ${isMin ? 'lowest' : 'highest'} point.`, `It sits at x = ${hx}, y = ${k}.`, `Vertex: ${pt(hx, k)}`],
         fig: (c, w, h) => { const P = grid(c, w, h, [-6, 6], [-6, 6]); plot(c, P, x => a * (x - hx) ** 2 + k, [-6, 6], HOT); dot(c, P(hx, k), RED); },
       };
@@ -272,7 +309,8 @@ const Figures = (() => {
   F.bars = () => {
     // One- or two-letter labels, so they fit under the bars.
     const [names, where] = pick([[['MO', 'TU', 'WE', 'TH', 'FR'], 'day'], [['A', 'B', 'C', 'D', 'E'], 'store'], [['1', '2', '3', '4', '5'], 'week']]);
-    const vals = names.map(() => randInt(2, 9) * 5);
+    // At least two different heights, or there's no pair to compare (and the pick below never ends).
+    let vals; do vals = names.map(() => randInt(2, 9) * 5); while (new Set(vals).size < 2);
     let i, j; do { i = randInt(0, 4); j = randInt(0, 4); } while (vals[i] <= vals[j]);
     const what = pick(['slices of pizza sold', 'cars that drove by', 'quizzes failed']);
     const DAYS = { MO: 'Monday', TU: 'Tuesday', WE: 'Wednesday', TH: 'Thursday', FR: 'Friday' };
@@ -295,13 +333,14 @@ const Figures = (() => {
 
   F.table = () => {
     const rows = ['9th', '10th'], cols = pick([['PIZZA', 'TACOS'], ['CATS', 'DOGS'], ['MATH', 'GYM']]);
-    const v = [[randInt(8, 30), randInt(8, 30)], [randInt(8, 30), randInt(8, 30)]];
+    // No row splits evenly, or the wrong answers collapse into one another.
+    let v; do v = [[randInt(8, 30), randInt(8, 30)], [randInt(8, 30), randInt(8, 30)]]; while (v[0][0] === v[0][1] || v[1][0] === v[1][1]);
     const r = randInt(0, 1), k = randInt(0, 1), rowTot = v[r][0] + v[r][1];
     const total = v[0][0] + v[0][1] + v[1][0] + v[1][1], colTot = v[0][k] + v[1][k];
     const right = frac(v[r][k], rowTot);
     return {
       topic: 'DATA', text: `The table shows survey answers by grade. What fraction of the ${rows[r]} graders chose ${cols[k]}?`,
-      ...textual(right, [frac(v[r][k], total), frac(v[r][k], colTot), frac(v[r][1 - k], rowTot), frac(rowTot - v[r][k] + 1, rowTot)].filter(s => s !== right)),
+      ...textual(right, [frac(v[r][k], total), frac(v[r][k], colTot), frac(v[r][1 - k], rowTot), frac(rowTot - v[r][k] + 1, rowTot), frac(v[r][k] + 1, rowTot), frac(colTot, total), frac(v[r][k] - 1, rowTot), frac(rowTot, total)].filter(s => s !== right)),
       steps: [`Only the ${rows[r]} graders count: ${v[r][0]} + ${v[r][1]} = ${rowTot}.`, `${v[r][k]} of them chose ${cols[k]}.`,
         right === `${v[r][k]}/${rowTot}` ? `So the fraction is ${right}.` : `${v[r][k]}/${rowTot} = ${right}`],
       fig: (c, w, h) => {
@@ -314,5 +353,6 @@ const Figures = (() => {
     };
   };
 
-  return { G: F, line };
+  const C = { INK, DIM, GRID, HOT, RED, GRN, BLU, BG: '#0c1028' };
+  return { G: F, C, line, circle, arc, label, rightMark, grid, plot, dot, box, disc, fillPoly, outlinePoly, icon, ICONS, ICON_NAMES, PAL, numeric, textual, frac };
 })();
