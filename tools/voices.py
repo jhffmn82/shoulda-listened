@@ -260,9 +260,6 @@ SCRIPT = [
     ('wrong', 'announcer', '[shouting] Wrong!'),
     ('times-up', 'announcer', "[shouting] Time's up!"),
     ('you-lose', 'announcer', '[shouting] You lose! [pause] [disappointed] Shoulda listened to your math teacher.'),
-    ('continue', 'announcer', '[dramatic] Continue?'),
-    *[(f'count-{n}', 'announcer', f'[dramatic] {w}!') for n, w in
-      enumerate(['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'])],
     ('game-over', 'announcer', '[dramatic] Game over.'),
     ('stage-clear', 'announcer', '[shouting] Stage clear!'),
     ('high-score', 'announcer', '[excited] New high score! Enter your initials!'),
@@ -282,7 +279,7 @@ SCRIPT = [
     ('hero-phew-1', 'hero', '[relieved] Phew.'),
     ('hero-phew-2', 'hero', '[cocky] Easy.'),
     ('hero-phew-3', 'hero', '[relieved] Nailed it.'),
-    ('hero-hit', 'hero', '[pained] Aaagh!'),
+    ('hero-hit', 'hero', '[short pained grunt] Ugh!'),
     ('hero-soaked', 'hero', "[spluttering] Hey! I'm soaked!"),
     ('hero-rise', 'hero', "[groggy] I'm okay!"),
     ('hero-home', 'hero', "[excited] Yes! I'm home!"),
@@ -300,11 +297,65 @@ SCRIPT = [
     ('made-you-look', 'driver', '[laughing] Made you look!'),
 ]
 
+# Lines said in one take and cut apart by ElevenLabs' word timings, so they share one tone and pace.
+NUMBERS = ['Nine', 'Eight', 'Seven', 'Six', 'Five', 'Four', 'Three', 'Two', 'One', 'Zero']
+TAKES = [
+    ('announcer', '[dramatic] Continue? ... ' + ' ... '.join(n + '.' for n in NUMBERS),
+     [('continue', 'Continue?')] + [(f'count-{9 - i}', n) for i, n in enumerate(NUMBERS)]),
+]
+
+
+def tts_timed(text, voice, model=MODEL, stability=.5):
+    """Like tts, plus the time each character is said: (pcm, characters, starts, ends)."""
+    path = cache_path(text, voice, model, stability).with_suffix('.json')
+    if not path.exists():
+        body = {'text': text, 'model_id': model, 'voice_settings': {'stability': stability, 'similarity_boost': .8}}
+        req = urllib.request.Request(f'{API}/text-to-speech/{VOICES[voice]}/with-timestamps?output_format=pcm_22050', data=json.dumps(body).encode(),
+                                     headers={'xi-api-key': key(), 'Content-Type': 'application/json', 'User-Agent': 'shoulda-listened'})
+        try:
+            data = urllib.request.urlopen(req, timeout=120).read()
+        except urllib.error.HTTPError as e:
+            sys.exit(f'ElevenLabs {e.code} on {voice} "{text}": {e.read().decode()[:300]}')
+        CACHE.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+        with open(VO / 'calls.jsonl', 'a', encoding='utf-8') as f:
+            f.write(json.dumps({'t': time.strftime('%Y-%m-%d %H:%M:%S'), 'voice': voice, 'model': model, 'text': text, 'timed': True}) + '\n')
+    d = json.loads(path.read_text())
+    a = d.get('alignment') or d['normalized_alignment']
+    return base64.b64decode(d['audio_base64']), ''.join(a['characters']), a['character_start_times_seconds'], a['character_end_times_seconds']
+
+
+def cut(role, text, words):
+    """One take, cut into {key: pcm} at its pauses. The word timings are only close, so they just say
+    which stretch of speech is which word."""
+    import numpy as np
+    pcm, chars, starts, ends = tts_timed(text, CAST[role])
+    x, f = samples(pcm), RATE // 100
+    env = np.array([np.sqrt((x[i:i + f] ** 2).mean()) for i in range(0, len(x) - f, f)])
+    on = env > max(.012, env.max() * .04)
+    regions = []  # stretches of speech, in seconds, joined across gaps under 0.12 s
+    for i in np.flatnonzero(on):
+        if regions and i - regions[-1][1] < 12: regions[-1][1] = i + 1
+        else: regions.append([i, i + 1])
+    regions = [(a / 100, b / 100) for a, b in regions]
+    out, at = {}, 0
+    for k, w in words:
+        i = chars.lower().index(w.lower(), at); at = i + len(w)
+        a, b = starts[i], ends[i + len(w) - 1]
+        n = max(range(len(regions)), key=lambda n: min(b, regions[n][1]) - max(a, regions[n][0]) - abs((a + b) / 2 - sum(regions[n]) / 2) * .01)
+        lo, hi = regions[n]
+        lo = max(lo - .03, regions[n - 1][1] if n else 0)
+        hi = min(hi + .12, regions[n + 1][0]) if n + 1 < len(regions) else hi + .2
+        out[k] = pcm[int(lo * RATE) * 2:int(hi * RATE) * 2]
+    return out
+
 
 def lines():
     from concurrent.futures import ThreadPoolExecutor
     with ThreadPoolExecutor(3) as pool:
         list(pool.map(lambda line: tts(line[2], CAST[line[1]]), SCRIPT))
+    for role, text, words in TAKES:
+        print(role, 'take cut into', len(cut(role, text, words)), 'lines')
     print(len(SCRIPT), 'lines in', len(list(CACHE.glob('*.pcm'))), 'cached takes')
 
 
@@ -321,6 +372,9 @@ def pack():
         p = cache_path(text, CAST[role])
         if not p.exists(): sys.exit(f'{k} is not recorded yet: run python tools/voices.py lines')
         out[k] = base64.b64encode(crunch(p.read_bytes())).decode()
+    for role, text, words in TAKES:
+        for k, pcm in cut(role, text, words).items():
+            out[k] = base64.b64encode(crunch(pcm)).decode()
     body = ',\n'.join(f'  {json.dumps(k)}: "{v}"' for k, v in out.items())
     cast = ', '.join(f'{r}: {v}' for r, v in CAST.items())
     (ROOT / 'js' / 'data' / 'voices.js').write_text(

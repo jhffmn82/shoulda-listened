@@ -152,3 +152,5 @@
 {"t": "2026-10-27 18:40:48", "voice": "Thomas", "model": "eleven_v3", "text": "[disappointed] Your math teacher is disappointed.", "bytes": 123480}
 {"t": "2026-10-27 18:40:48", "voice": "Thomas", "model": "eleven_v3", "text": "[exasperated] Did you write your name?", "bytes": 84672}
 {"t": "2026-10-27 18:40:48", "voice": "Charlie", "model": "eleven_v3", "text": "[laughing] Made you look!", "bytes": 95256}
+{"t": "2026-10-27 19:23:29", "voice": "Liam", "model": "eleven_v3", "text": "[short pained grunt] Ugh!", "bytes": 67032}
+{"t": "2026-10-27 19:23:32", "voice": "Patrick", "model": "eleven_v3", "text": "[dramatic] Continue? ... Nine. ... Eight. ... Seven. ... Six. ... Five. ... Four. ... Three. ... Two. ... One. ... Zero.", "timed": true}

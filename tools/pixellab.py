@@ -262,11 +262,16 @@ def solid(im):
     px = np.array(im)
     h, w = px.shape[:2]
     opaque = px[..., 3] > 40
-    first = np.where(opaque.any(0), opaque.argmax(0), h)
-    roof = first.copy()
-    for x in range(w):
-        m = first[max(0, x - 3):x + 4].min()
-        if first[x] - m <= 6: roof[x] = m  # a gap between bricks, not a step in the roofline
+    drawn = opaque.any(0)
+    first = np.where(drawn, opaque.argmax(0), h)
+    # A column's roofline is the lower of the nearest rooftops on its left and right, so gaps between
+    # bricks and between townhouses fill in, but a step in the roofline doesn't spread sideways.
+    R = 10
+    roof = np.array([max(first[max(0, x - R):x + 1].min(), first[x:x + R + 1].min()) for x in range(w)])
+    # Empty margins at the sides take the roofline of the building next to them.
+    cols = np.flatnonzero(drawn)
+    if len(cols):
+        roof[:cols[0]] = roof[cols[0]]; roof[cols[-1] + 1:] = roof[cols[-1]]
     hole = ~opaque & (np.arange(h)[:, None] >= roof[None, :])
     seen = np.zeros_like(hole)
     for sy, sx in zip(*np.nonzero(hole)):

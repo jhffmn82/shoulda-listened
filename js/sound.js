@@ -212,10 +212,10 @@ const Sound = (() => {
   }
 
   // ---- Voices: the recorded lines in js/data/voices.js (ElevenLabs, crunched to 8 bits by
-  // tools/voices.py), on one speech channel like a 90s board: a new line cuts off the last one,
-  // unless it's queued, and the music ducks while anyone talks.
+  // tools/voices.py), on one speech channel like a 90s board. Lines take turns, and the music ducks
+  // while anyone talks.
   const lines = {};
-  let vox = null, talking = null, queued = null;
+  let vox = null, talking = null, queue = [];
   function loadVoices() {
     if (vox || typeof VOICE_LINES === 'undefined') return;
     vox = ac.createGain(); vox.gain.value = 1.15; vox.connect(out);
@@ -230,27 +230,39 @@ const Sound = (() => {
     mus.gain.cancelScheduledValues(t); mus.gain.setValueAtTime(mus.gain.value, t);
     mus.gain.linearRampToValueAtTime(on ? .14 : .42, t + (on ? .05 : .4));
   }
-  // Plays a line (a key, or a list to pick from) and returns how long it runs, 0 if it can't play.
-  // o.queue: wait for whoever is talking to finish. o.fallback: words for the browser's own voice.
+  function start(key) {
+    const b = lines[key], src = ac.createBufferSource();
+    src.buffer = b; src.connect(vox); src.start();
+    const me = talking = { src, end: ac.currentTime + b.duration };
+    duck(true);
+    src.onended = () => {
+      if (talking !== me) return;
+      talking = null;
+      while (queue.length) { const q = queue.shift(); if (ac.currentTime <= q.by) return start(q.key); }
+      duck(false);
+    };
+  }
+  // Plays a line (a key, or a list to pick one from) and returns how long until it has been said,
+  // counting any wait for its turn; 0 if it won't be said. While someone is talking a line waits its
+  // turn, unless that would be more than o.wait seconds (default 1.2), when it's dropped.
+  // o.cut: say it now, cutting off whoever is talking. o.optional: only if nobody is talking.
+  // o.fallback: words for the browser's own voice if the line wasn't recorded.
   function voice(key, o = {}) {
     if (Array.isArray(key)) key = key[Math.floor(Math.random() * key.length)];
     if (muted || !ready()) return 0;
     const b = lines[key];
     if (!b) { if (o.fallback) say(o.fallback); return 0; }
-    if (o.queue && talking) { queued = key; return b.duration + talking.left(); }
-    if (talking) talking.src.stop();
-    const src = ac.createBufferSource(), at = ac.currentTime;
-    src.buffer = b; src.connect(vox); src.start();
-    const me = talking = { src, left: () => Math.max(0, b.duration - (ac.currentTime - at)) };
-    duck(true);
-    src.onended = () => {
-      if (talking !== me) return;
-      talking = null;
-      if (queued) { const q = queued; queued = null; voice(q); } else duck(false);
-    };
+    const busy = talking ? Math.max(0, talking.end - ac.currentTime) + queue.reduce((s, q) => s + lines[q.key].duration, 0) : 0;
+    if (busy && !o.cut) {
+      if (o.optional || busy > (o.wait === undefined ? 1.2 : o.wait)) return 0;
+      queue.push({ key, by: ac.currentTime + busy + .15 });
+      return busy + b.duration;
+    }
+    hush();
+    start(key);
     return b.duration;
   }
-  function hush() { queued = null; if (talking) { const t = talking; talking = null; t.src.stop(); duck(false); } }
+  function hush() { queue = []; if (talking) { const t = talking; talking = null; t.src.stop(); duck(false); } }
 
   // The browser's own voice, for a line that wasn't recorded.
   let sv = null;

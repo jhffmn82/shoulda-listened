@@ -136,7 +136,7 @@ const Attract = {
     const tap = Input.tap();
     if (Input.pressed('parent') || (tap && this.mode === 'title' && tap.y > 196 && tap.y < 212)) {
       Game.setParent(!Game.parent); Sound.play('select');
-      Sound.voice(Game.parent ? 'parent-on' : 'parent-off');
+      Sound.voice(Game.parent ? 'parent-on' : 'parent-off', { cut: true });
       return;
     }
     if (Input.pressed('start') || tap) {
@@ -145,9 +145,9 @@ const Attract = {
       Sound.play('start');
       return Game.go(Play, {});
     }
-    if (this.calling && this.mode === 'title' && this.t > .7 && Sound.voice('title')) {
+    if (this.calling && this.mode === 'title' && this.t > .7 && Sound.voice('title', { cut: true })) {
       this.calling = false;
-      if (!Game.credits) Sound.voice('insert-coin', { queue: true });
+      if (!Game.credits) Sound.voice('insert-coin', { wait: 5 });
     }
     const dur = { title: 9, scores: 7, howto: 8 }[this.mode];
     if (this.t > dur) this.next();
@@ -249,7 +249,7 @@ const Play = {
     this.phase = 'walk';
     this.banner = { big: this.loop > 1 ? 'STAGE 1-' + this.loop : 'STAGE 1', sub: this.loop > 1 ? 'THE BLOCK, AGAIN. HARDER.' : 'THE BLOCK', sub2: 'GET HOME!', t: 0, dur: 3 };
     if (!this.demo) Sound.music('street');
-    this.vo(this.loop > 1 ? 'round-' + Math.min(5, this.loop) : 'stage-1', { fallback: this.loop > 1 ? 'Round ' + this.loop : 'Stage one' });
+    this.vo(this.loop > 1 ? 'round-' + Math.min(5, this.loop) : 'stage-1', { cut: true, fallback: this.loop > 1 ? 'Round ' + this.loop : 'Stage one' });
   },
   level() { return clamp(this.loop + (rand() < .3 ? -1 : 0), 1, 4); },
   clock(q) { return [30, 25, 22, 18, 15][Math.min(4, this.loop - 1)] + (q.fig || q.text.length > 110 ? 5 : 0); },
@@ -315,7 +315,7 @@ const Play = {
     for (const can of this.cans) {
       if (can.down || Math.abs(can.x - (h.x + h.face * 16)) > 15) continue;
       can.down = true; can.vx = 110 * h.face; can.flip = h.face < 0; this.kicked = true;
-      if (rand() < .35) this.vo(['hero-kick-1', 'hero-kick-2']);
+      if (rand() < .35) this.vo(['hero-kick-1', 'hero-kick-2'], { optional: true });
       Sound.play('clang'); Game.shake = 2;
       this.add(100); this.pop(can.x, WALK_TOP - 4, '100', '#ffe060');
       this.parts.push({ k: 'spr', img: Sprites.lid, x: can.x, y: World.PROP_BASE - 20, vx: 90 * h.face, vy: -160, g: 480, life: 1.4 });
@@ -330,7 +330,7 @@ const Play = {
     const h = this.hero, I = this.inv;
     if (it.k === 'cash') {
       const v = pick([500, 500, 1000, 2000]);
-      this.add(v); Sound.play('pickup'); this.vo('cash');
+      this.add(v); Sound.play('pickup'); this.vo('cash', { optional: true });
       return this.pop(h.x, FLOOR - 76, '$' + v / 100 + '  +' + v, '#ffe060');
     }
     // Already holding as many as you can: it's worth points instead.
@@ -366,11 +366,11 @@ const Play = {
       car.vx = -2 * (car.from - car.to) * (1 - u) / T;
       if (!E.screech && u > .45) { E.screech = true; Sound.play('screech'); }
       if (u > .45 && u < .95) this.smoke(car.x + carArt(car.color).w * .78, 3);
-      if (u >= 1) { car.vx = 0; this.goto('window'); Sound.play('window'); if (rand() < .5) this.vo(['hero-uhoh-1', 'hero-uhoh-2', 'hero-uhoh-3']); }
+      if (u >= 1) { car.vx = 0; this.goto('window'); Sound.play('window'); if (rand() < .5) this.vo(['hero-uhoh-1', 'hero-uhoh-2', 'hero-uhoh-3'], { optional: true }); }
     } else if (E.phase === 'window') {
       car.open = Math.min(1, E.t / .4);
       if (E.t > .45 && !car.gun) { car.gun = 'sit'; car.gt = 0; }
-      if (E.t > .8) { car.gun = 'aim'; car.gt = 0; Sound.play('cock'); h.state = 'hands'; this.goto('talk'); E.talkFor = this.vo('g-' + words(E.line)); }
+      if (E.t > .8) { car.gun = 'aim'; car.gt = 0; Sound.play('cock'); h.state = 'hands'; this.goto('talk'); E.talkFor = this.vo('g-' + words(E.line), { wait: 2 }); }
     } else if (E.phase === 'talk') {
       if (E.t > Math.max(1.6, (E.talkFor || 0) + .2) || (E.t > .5 && this.ctl.pressed('fire'))) {
         this.goto('quiz');
@@ -382,7 +382,7 @@ const Play = {
     else if (E.phase === 'nod') {
       if (E.t > Math.max(1.3, (E.sayFor || 0) + .15)) {
         car.gun = null; car.leaving = true; Sound.play('screech'); Sound.play('engine', 1); h.state = 'idle'; this.goto('leave');
-        if (rand() < .4) this.vo(['hero-phew-1', 'hero-phew-2', 'hero-phew-3'], { queue: true });
+        if (rand() < .4) this.vo(['hero-phew-1', 'hero-phew-2', 'hero-phew-3'], { wait: 1 });
       }
     } else if (E.phase === 'leave') {
       if (!this.cars.includes(car)) { this.E = null; this.phase = 'walk'; if (!this.demo) Sound.music('street'); }
@@ -442,7 +442,7 @@ const Play = {
   },
   resolve() {
     const E = this.E, car = E.car;
-    if (E.ok) { car.gun = 'nod'; car.gt = 0; E.say = pick(LINES.pass); this.goto('nod'); E.sayFor = this.vo('g-' + words(E.say)); return; }
+    if (E.ok) { car.gun = 'nod'; car.gt = 0; E.say = pick(LINES.pass); this.goto('nod'); E.sayFor = this.vo('g-' + words(E.say), { wait: 2 }); return; }
     car.gun = 'fire'; car.gt = 0; E.flashT = .1;
     E.blocked = this.inv.keeper;
     this.goto('shot');
@@ -459,11 +459,11 @@ const Play = {
       this.parts.push({ k: 'spr', img: Sprites.keeper, x: h.x + 10, y: FLOOR - 40, vx: -60, vy: -200, g: 500, life: 1.6 });
       this.banner = { big: 'BLOCKED!', sub: 'THE KEVLAR TRAPPER KEEPER TOOK THE BULLET.', sub2: 'YOU STILL GOT IT WRONG, THOUGH.', t: 0, dur: 2.6, bands: BANDS.blue };
       E.say = pick(LINES.blocked);
-      this.vo('blocked'); this.vo('g-' + words(E.say), { queue: true });
+      this.vo('blocked'); E.sayFor = this.vo('g-' + words(E.say), { wait: 3 });
       return;
     }
     E.say = E.pick === -1 ? pick(LINES.late) : pick(LINES.kill);
-    this.vo(Game.parent ? 'hero-soaked' : 'hero-hit'); this.vo('g-' + words(E.say), { queue: true });
+    this.vo(Game.parent ? 'hero-soaked' : 'hero-hit'); E.sayFor = this.vo('g-' + words(E.say), { wait: 3 });
     h.state = 'shot'; h.t = 0; h.down = false;
     const col = Game.parent ? ['#60a8f8', '#a8d8ff', '#2a70d0'] : ['#c01018', '#e02028', '#7a0810'];
     for (let i = 0; i < 22; i++) this.parts.push({ k: 'px', x: chest[0], y: chest[1], vx: -30 - rand() * 130, vy: -110 + rand() * 120, g: 420, life: 1.2, c: pick(col), s: rand() < .3 ? 2 : 1, floor: FLOOR - 1 });
@@ -473,7 +473,7 @@ const Play = {
     if (E.flashT > 0) E.flashT -= dt;
     if (E.t > .45 && car.gun === 'fire') { car.gun = 'aim'; car.gt = 0; }
     if (E.blocked) {
-      if (E.t > 1.5) { car.gun = null; car.leaving = true; Sound.play('screech'); this.goto('leave'); h.state = 'idle'; }
+      if (E.t > Math.max(1.5, (E.sayFor || 0) + .2)) { car.gun = null; car.leaving = true; Sound.play('screech'); this.goto('leave'); h.state = 'idle'; }
       return;
     }
     if (h.t < .3) h.x -= 50 * dt;
@@ -481,8 +481,8 @@ const Play = {
       h.down = true; Sound.play('thud'); Game.shake = 3;
       this.decals.push({ x: h.x + (h.face < 0 ? -1 : 1) * (Sprites.hero.deadCx || 0), r: 0, max: 24 });
     }
-    if (E.t > 1.2 && car.gun) { car.gun = null; car.leaving = true; Sound.play('screech'); Sound.play('engine', 1); }
-    if (E.t > 1.3) { this.phase = 'death'; this.D = { t: 0, stage: 'loose' }; }
+    if (E.t > Math.max(1.2, E.sayFor || 0) && car.gun) { car.gun = null; car.leaving = true; Sound.play('screech'); Sound.play('engine', 1); }
+    if (E.t > Math.max(1.3, (E.sayFor || 0) + .2)) { this.phase = 'death'; this.D = { t: 0, stage: 'loose' }; }
   },
 
   // ---- Dying, the chalkboard, continuing.
@@ -490,19 +490,19 @@ const Play = {
     const D = this.D;
     D.t += dt;
     if (!D.trom && D.t > .1) { D.trom = true; if (!this.demo) Sound.play('trombone'); }
-    if (!D.slam && D.t > .6) { D.slam = true; Game.shake = 6; Sound.play('thud'); this.vo('you-lose', { fallback: 'You lose' }); }
+    if (!D.slam && D.t > .6) { D.slam = true; Game.shake = 6; Sound.play('thud'); this.vo('you-lose', { cut: true, fallback: 'You lose' }); }
     const any = this.ctl.pressed('fire') || Input.pressed('start') || Input.taps.length;
-    if (D.stage === 'loose' && (D.t > 4.2 || (D.t > 1.8 && any))) { D.stage = 'board'; D.bt = 0; this.vo('board'); return; }
+    if (D.stage === 'loose' && (D.t > 4.2 || (D.t > 1.8 && any))) { D.stage = 'board'; D.bt = 0; this.vo('board', { cut: true }); return; }
     if (D.stage === 'board') {
       D.bt += dt;
       if (this.demo && D.bt > 4) return Game.go(Attract, 'title');
-      if ((D.bt > .8 && any) || D.bt > 14) { D.stage = 'cont'; D.ct = 9.99; D.sec = 10; this.vo('continue'); }
+      if ((D.bt > .8 && any) || D.bt > 14) { D.stage = 'cont'; D.ct = 10.99; D.sec = 11; this.vo('continue', { cut: true }); }
       return;
     }
     if (D.stage === 'cont') {
       D.ct -= dt;
       const s = Math.ceil(D.ct);
-      if (s !== D.sec) { D.sec = s; if (s >= 0) Sound.play('beep'); if (s >= 1 && s <= 9) this.vo('count-' + (s - 1)); }
+      if (s !== D.sec) { D.sec = s; if (s >= 0) Sound.play('beep'); if (s >= 1 && s <= 10) this.vo('count-' + (s - 1), { cut: true }); }
       if (Input.pressed('start') || Input.taps.length || this.ctl.pressed('fire')) {
         if (!Game.credits) Game.coin();
         Game.credits--;
@@ -511,7 +511,7 @@ const Play = {
         this.D = null; this.E = null;
         this.cars = this.cars.filter(c => !c.thug);
         this.phase = 'rise'; this.hero.state = 'rise'; this.hero.t = 0; this.decals = [];
-        this.vo('hero-rise');
+        this.vo('hero-rise', { cut: true });
         return;
       }
       if (D.ct <= 0) this.gameOver();
@@ -526,12 +526,12 @@ const Play = {
     this.D = null;
     this.O = { t: 0, sat: satEstimate(this.log) };
     [this.O.band, this.O.joke] = SAT_JOKES.find(([s]) => this.O.sat >= s);
-    Sound.stopMusic(); Sound.play('gameover'); this.vo('game-over', { fallback: 'Game over' });
+    Sound.stopMusic(); Sound.play('gameover'); this.vo('game-over', { cut: true, fallback: 'Game over' });
   },
   over(dt) {
     const O = this.O;
     O.t += dt;
-    if (!O.joked && O.t > 2.2) { O.joked = true; this.vo('sat-' + O.band); }
+    if (!O.joked && O.t > 2.2) { O.joked = true; this.vo('sat-' + O.band, { wait: 3 }); }
     if (O.t > 7 || (O.t > 2.5 && (this.ctl.pressed('fire') || Input.pressed('start') || Input.taps.length))) {
       const score = this.score + Math.min(9, this.cont);
       if (Game.rank(score) >= 0) Game.go(Entry, { score, sat: O.sat });
@@ -554,7 +554,7 @@ const Play = {
       if (Math.abs(d) > 2) { h.face = Math.sign(d); h.x += h.face * 60 * dt; h.state = 'walk'; h.step += dt; }
       else {
         h.state = 'cheer'; h.face = 1; C.stage = 'cheer'; C.t = 0; Sound.music('clear');
-        this.vo('hero-home'); this.vo('stage-clear', { queue: true, fallback: 'Stage clear' });
+        this.vo('hero-home'); this.vo('stage-clear', { wait: 3, fallback: 'Stage clear' });
       }
       this.cam = clamp(Math.max(this.cam, h.x - 130), 0, this.S.length - W);
     } else if (C.stage === 'cheer') {
@@ -572,7 +572,7 @@ const Play = {
           if (C.n < r[1]) { const k = Math.min(step, r[1] - C.n); C.n += k; this.add(k * r[2]); Sound.play('tally'); }
           else { C.row++; C.n = 0; C.t = -.5; }
         }
-      } else if (C.t > 1.6) { C.stage = 'story'; C.t = 0; C.forgot = pick(FORGOT); this.vo('forgot-' + words(C.forgot).replace(/^your-/, '')); }
+      } else if (C.t > 1.6) { C.stage = 'story'; C.t = 0; C.forgot = pick(FORGOT); this.vo('forgot-' + words(C.forgot).replace(/^your-/, ''), { cut: true }); }
     } else if (C.stage === 'story') {
       if (C.t > 4.5 || (C.t > 1.5 && (this.ctl.pressed('fire') || Input.pressed('start') || Input.taps.length))) { this.loop++; this.startLoop(); }
     }
@@ -602,7 +602,7 @@ const Play = {
       else if (car.fake && !car.faked && car.x - h.x < 150) { car.faked = true; car.slow = 1.1; }
       if (car.slow > 0) {
         car.slow -= dt; car.vx = lerp(car.vx, car.slow > .3 ? -30 : -260, dt * 4);
-        if (car.slow <= 0) { Sound.play('honk'); this.pop(car.x + 40, TIRES - 64, 'MADE YOU LOOK!', '#ffe060'); this.vo('made-you-look'); }
+        if (car.slow <= 0) { Sound.play('honk'); this.pop(car.x + 40, TIRES - 64, 'MADE YOU LOOK!', '#ffe060'); this.vo('made-you-look', { optional: true }); }
       }
       if (!car.thug || car.leaving || car.flee) car.x += car.vx * dt;
     }
@@ -808,7 +808,7 @@ const Play = {
   drawEncounter(ctx) {
     const E = this.E, L = E.L, car = E.car, cam = this.cam;
     // Speech bubble.
-    const talk = E.phase === 'talk' ? E.line : (E.phase === 'nod' || (E.phase === 'shot' && E.t > .3)) ? E.say : null;
+    const talk = E.phase === 'talk' ? E.line : (E.phase === 'nod' || (E.phase === 'shot' && E.t > .3 && !car.leaving)) ? E.say : null;
     if (talk) {
       const w = Font.width(talk, true) + 12, x = clamp(Math.round(car.x - cam + 60 - w / 2), 4, W - w - 4), y = TIRES - 98;
       rect(ctx, x - 1, y - 1, w + 2, 15, '#000'); rect(ctx, x, y, w, 13, '#ffffff');
@@ -963,7 +963,7 @@ const Entry = {
   enter(o) {
     this.o = o; this.name = ''; this.cur = 0; this.t = 0;
     this.rank = Game.rank(o.score);
-    Sound.music('entry'); Sound.voice('high-score');
+    Sound.music('entry'); Sound.voice('high-score', { cut: true });
   },
   finish() {
     const name = (this.name + '   ').slice(0, 3);
