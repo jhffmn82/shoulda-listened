@@ -5,6 +5,10 @@ Pages read/write) and never printed or written anywhere. Git's credential manage
 can't reach the Windows credential vault from Claude's shell.
 
     python tools/publish.py
+
+First it fingerprints the scripts: each <script src="js/..."> in index.html gets ?v= and a hash of the
+file, committed if it changed. GitHub Pages lets browsers keep files for 10 minutes, so without it a
+player could get this release's page with last release's scripts (or a "not found" cached mid-deploy).
 """
 import base64, json, os, pathlib, subprocess, sys, urllib.error, urllib.request
 
@@ -32,7 +36,21 @@ def api(method, path, body=None):
         return e.code, json.loads(e.read() or b'{}')
 
 
+def fingerprint():
+    """Stamps each script in index.html with a hash of its contents. True if index.html changed."""
+    import hashlib, re
+    page = ROOT / 'index.html'
+    html = page.read_text(encoding='utf-8')
+    stamp = lambda m: f'src="{m[1]}?v={hashlib.sha1((ROOT / m[1]).read_bytes()).hexdigest()[:8]}"'
+    new = re.sub(r'src="(js/[^"?]+)(?:\?v=[0-9a-f]*)?"', stamp, html)
+    if new == html: return False
+    with open(page, 'w', encoding='utf-8', newline='') as f: f.write(new)
+    return True
+
+
 def main():
+    if fingerprint():
+        subprocess.run(['git', '-C', str(ROOT), 'commit', '-q', '-m', 'Fingerprint the scripts for this release', 'index.html'], check=True)
     code, repo = api('GET', f'/repos/{OWNER}/{REPO}')
     if code != 200:
         raise SystemExit(f'github.com/{OWNER}/{REPO} not reachable with this token ({code}): create the repo first')
