@@ -60,13 +60,20 @@ function reportCard(log) {
   const [, letter, key, joke] = CARDS.find(([s, l]) => share >= s && (l !== 'A+' || log.length >= 5));
   return { letter, key, joke, ok, n: log.length };
 }
-// A question in words a speech voice can say: symbols spelled out, a "?" standing in for a number asked for.
-function speakable(q) {
-  if (q.say) return q.say;
+// Words a speech voice can say: symbols spelled out, a "?" standing in for a number asked for.
+function spoken(s) {
   const money = (m, d, c) => `${d} dollar${d === '1' ? '' : 's'}` + (c && c !== '00' ? ` and ${+c} cents` : '');
-  return q.text.replace(/\$(\d[\d,]*)(?:\.(\d\d))?/g, money).replace(/\^\{([^}]*)\}|\^(.)/g, ' to the power of $1$2 ').replace(/(\s)\?(\s)/g, '$1what number$2')
+  return String(s).replace(/\$(\d[\d,]*)(?:\.(\d\d))?/g, money).replace(/\^\{([^}]*)\}|\^(.)/g, ' to the power of $1$2 ').replace(/(\s)\?(\s)/g, '$1what number$2')
     .replace(/(\d)\s*-\s*(\d)/g, '$1 minus $2').replace(/\+/g, ' plus ').replace(/×/g, ' times ').replace(/÷/g, ' divided by ')
-    .replace(/=/g, ' equals ').replace(/</g, ' is less than ').replace(/>/g, ' is greater than ').replace(/¢/g, ' cents').replace(/_+/g, ' blank ');
+    .replace(/([\d)])\s*<\s*(?=[\d(])/g, '$1 is less than ').replace(/([\d)])\s*>\s*(?=[\d(])/g, '$1 is greater than ')
+    .replace(/</g, ' less than ').replace(/>/g, ' greater than ').replace(/=/g, ' equals ')
+    .replace(/°F/g, ' degrees').replace(/°/g, ' degrees').replace(/¢/g, ' cents').replace(/_+/g, ' blank ');
+}
+const speakable = q => q.say || spoken(q.text);
+// What Mr. Delgado reads off the chalkboard to the youngest grades: what you said, the steps, the answer.
+function boardSpeech(q, pick) {
+  const line = s => (s = spoken(s).trim(), /[.!?:]$/.test(s) ? s : s + '.');
+  return [pick === -1 ? 'You ran out of time.' : `You said ${line(q.choices[pick])}`, ...q.steps.map(line), `The answer is ${line(q.choices[q.answer])}`].join(' ');
 }
 // What the score table shows in its last column: an SAT score, or the grade and the report card.
 const gradeTag = s => !s.grade || s.grade === 'sat' ? 'SAT ' + s.sat : Questions.byId(s.grade).short + ' ' + (s.card || '');
@@ -88,21 +95,83 @@ const Game = {
     // While initials are typed, M, F and 5 are letters, not mute, full screen and coin (the pad's buttons still work).
     const typing = this.scene === Entry, key = act => Input.vhit.has(act) || (!typing && Input.pressed(act));
     if (key('mute') || (typing && Input.hit.has('Digit0'))) Sound.toggleMute();
-    if (key('full')) {
-      try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); } catch (e) { /* not allowed */ }
-    }
+    if (key('full')) this.fullScreen();
+    if (Options.open) return Options.update(dt);
+    if (this.scene !== Boot && Input.pressed('pause')) return Options.show();
     if (key('coin')) this.coin();
     this.scene.update(dt);
   },
   coin() { if (this.credits < 9) this.credits++; Sound.play('coin'); },
+  fullScreen() {
+    try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); } catch (e) { /* not allowed */ }
+  },
   draw(ctx) {
     ctx.save();
     this.scene.draw(ctx);
     ctx.restore();
     if (this.flash > 0) { ctx.globalAlpha = Math.min(1, this.flash); rect(ctx, 0, 0, W, H, '#fff'); ctx.globalAlpha = 1; }
+    if (Options.open) Options.draw(ctx);
   },
   setParent(on) { this.parent = on; Store.set('parent', on); buildArt(on); },
   rank(score) { return this.scores.findIndex(s => score > s.score); },
+};
+
+// ---- Options: sound, Parent Mode, full screen and the controls, over whatever is on screen. Esc or
+// the pad's MENU button opens it anywhere; during a game it's the pause screen.
+const Options = {
+  open: false, cur: 0, ROW: 40, STEP: 13,
+  KEYS: [['← →', 'WALK'], ['Z', 'KICK'], ['A-D, 1-4', 'ANSWER'], ['X', 'CALCULATOR'], ['1, ENTER', 'START'], ['5', 'COIN'],
+    ['R', 'READ IT AGAIN'], ['ESC', 'PAUSE, OPTIONS'], ['M', 'SOUND'], ['F', 'FULL SCREEN'], ['P', 'PARENT MODE']],
+  PAD: [['← →', 'WALK'], ['A', 'KICK'], ['TAP', 'ANSWER'], ['B', 'CALCULATOR'], ['A', 'ANSWER TOO'], ['READ', 'READ IT AGAIN'],
+    ['START', 'START'], ['MENU', 'PAUSE, OPTIONS'], ['COIN', 'COIN'], ['SOUND', 'SOUND']],
+  playing: () => Game.scene === Play && !Play.demo,
+  rows() {
+    const r = [['back', this.playing() ? 'GO ON' : 'BACK'], ['sound', 'SOUND: ' + (Sound.muted ? 'OFF' : 'ON')]];
+    // Parent Mode swaps the art, so it changes between games, not during one (or the demo).
+    if (Game.scene !== Play) r.push(['parent', 'PARENT MODE: ' + (Game.parent ? 'ON (WATER GUNS)' : 'OFF')]);
+    if (document.fullscreenEnabled) r.push(['full', 'FULL SCREEN: ' + (document.fullscreenElement ? 'ON' : 'OFF')]);
+    return r;
+  },
+  show() { if (this.open) return; this.open = true; this.cur = 0; if (this.playing()) Play.pause(true); Sound.play('select'); },
+  hide() { this.open = false; if (this.playing()) Play.pause(false); },
+  choose(id) {
+    if (id === 'back') return this.hide();
+    if (id === 'sound') Sound.toggleMute();
+    if (id === 'parent') { Game.setParent(!Game.parent); Sound.voice(Game.parent ? 'parent-on' : 'parent-off', { cut: true }); }
+    if (id === 'full') Game.fullScreen();
+    Sound.play('select');
+  },
+  update() {
+    const rows = this.rows(), n = rows.length, tap = Input.tap();
+    this.cur = Math.min(this.cur, n - 1);
+    if (Input.pressed('pause')) return this.hide();
+    if (tap) {
+      const i = Math.floor((tap.y - this.ROW + 3) / this.STEP);
+      if (tap.x < 40 || tap.x > W - 40 || tap.y < 8 || tap.y > 216) return this.hide();
+      if (i >= 0 && i < n) { this.cur = i; this.choose(rows[i][0]); }
+      return;
+    }
+    if (Input.pressed('up')) { this.cur = (this.cur + n - 1) % n; Sound.play('select'); }
+    if (Input.pressed('down')) { this.cur = (this.cur + 1) % n; Sound.play('select'); }
+    const id = rows[this.cur][0];
+    if (Input.pressed('fire') || Input.pressed('start') || (id !== 'back' && (Input.pressed('left') || Input.pressed('right')))) this.choose(id);
+  },
+  draw(ctx) {
+    ctx.globalAlpha = .6; rect(ctx, 0, 0, W, H, '#000'); ctx.globalAlpha = 1;
+    panel(ctx, 40, 8, W - 80, 208);
+    bigText(ctx, this.playing() ? 'PAUSED' : 'OPTIONS', 2, BANDS.gold, W / 2, 16);
+    this.rows().forEach(([, label], i) => {
+      const y = this.ROW + i * this.STEP, on = i === this.cur;
+      if (on) rect(ctx, 64, y - 3, W - 128, this.STEP, '#24348c');
+      Font.draw(ctx, label, W / 2, y, on ? '#ffffff' : '#b8c0f0', { bold: on, align: 'center' });
+    });
+    Font.draw(ctx, 'CONTROLS', W / 2, 100, '#ff5050', { bold: true, align: 'center' });
+    (TOUCH ? this.PAD : this.KEYS).forEach(([k, s], i) => {
+      const x = i % 2 ? 198 : 56, y = 114 + Math.floor(i / 2) * 12;
+      Font.draw(ctx, k, x, y, '#ffe060'); Font.draw(ctx, s, x + (i % 2 ? 40 : 52), y, '#e8ecff');
+    });
+    Font.draw(ctx, TOUCH ? 'TAP ONE TO CHANGE IT. TAP OUTSIDE TO GO ON.' : 'UP, DOWN AND ENTER TO CHANGE. ESC TO GO ON.', W / 2, 200, '#8890c0', { align: 'center' });
+  },
 };
 
 // ---- Boot: a fake board self-test, then the warning screen.
@@ -147,7 +216,8 @@ const Attract = {
     this.cam += dt * 24;
     if (this.cam > this.S.length - W - 10) this.cam = 200;
     const tap = Input.tap();
-    if (Input.pressed('parent') || (tap && this.mode === 'title' && tap.y > 196 && tap.y < 212)) {
+    if (tap && this.mode === 'title' && tap.y > 196 && tap.y < 212) return Options.show();
+    if (Input.pressed('parent')) {
       Game.setParent(!Game.parent); Sound.play('select');
       Sound.voice(Game.parent ? 'parent-on' : 'parent-off', { cut: true });
       return;
@@ -187,7 +257,8 @@ const Attract = {
     Font.draw(ctx, 'AN EDUCATIONAL GAME*', W / 2, 114, '#a8b0e8', { align: 'center', outline: '#000' });
     if (blink(1.2)) bigText(ctx, Game.credits ? 'PUSH START' : 'INSERT COIN', 2, BANDS.gold, W / 2, 138);
     Font.draw(ctx, TOUCH ? 'TAP THE SCREEN TO PLAY' : Game.credits ? '1 OR ENTER TO PLAY' : '5 FOR A COIN, OR JUST PRESS ENTER', W / 2, 166, '#9098c8', { align: 'center', outline: '#000' });
-    Font.draw(ctx, (TOUCH ? 'TAP HERE: PARENT MODE ' : 'P: PARENT MODE ') + (Game.parent ? 'ON (WATER GUNS)' : 'OFF'), W / 2, 200, Game.parent ? '#60e0ff' : '#c8c8d8', { align: 'center', outline: '#000' });
+    const notes = [TOUCH ? 'TAP HERE FOR OPTIONS' : 'ESC FOR OPTIONS'].concat(Sound.muted ? ['SOUND OFF'] : [], Game.parent ? ['PARENT MODE ON'] : []);
+    Font.draw(ctx, notes.join(' · '), W / 2, 200, Sound.muted || Game.parent ? '#60e0ff' : '#c8c8d8', { align: 'center', outline: '#000' });
     Font.draw(ctx, '*NOT REALLY', 8, 214, '#6870a0', { outline: '#000' });
     Font.draw(ctx, '© 1994 CHALKDUST', W - 8, 214, '#6870a0', { align: 'right', outline: '#000' });
   },
@@ -346,7 +417,7 @@ const Play = {
   pause(on) {
     if (this.demo || on === this.paused) return;
     this.paused = on;
-    if (on) { Sound.stopMusic(); Sound.hush(); Sound.quiet(); } else Sound.music(this.E && this.E.phase === 'quiz' ? 'quiz' : 'street');
+    if (on) { this.song = Sound.song; Sound.stopMusic(); Sound.hush(); Sound.quiet(); } else if (this.song) Sound.music(this.song);
   },
   // Someone says something (not in the demo). Returns how long it runs.
   vo(key, o) { return this.demo ? 0 : Sound.voice(key, o); },
@@ -359,7 +430,6 @@ const Play = {
       }
       Bot.think(this);
     }
-    if (!this.demo && (Input.pressed('pause') || (this.paused && Input.taps.length))) this.pause(!this.paused);
     if (this.paused) return;
     if (this.stop > 0) { this.stop -= dt; return; }
     Game.shake = Math.max(0, Game.shake - dt * 24);
@@ -608,7 +678,9 @@ const Play = {
       if (this.demo && D.bt > 4) return Game.go(Attract, 'title');
       // Mr. Delgado finishes his line first; then A (the button, Z, or the A key), Start or a tap moves on.
       D.ready = D.bt > Math.max(.8, (D.boardFor || 0) + .1);
-      if ((D.ready && (any || Input.hit.has('KeyA'))) || D.bt > 14) { D.stage = 'cont'; D.ct = 10.99; D.sec = 11; this.vo('continue', { cut: true }); }
+      // Kindergarten to 2nd grade: then he reads the board out. R (or READ) reads it again; A stops him.
+      if (!this.demo && READ_ALOUD.includes(this.grade) && this.E && ((D.ready && !D.read) || Input.pressed('read'))) { D.read = true; Sound.read(boardSpeech(this.E.q, this.E.pick), { teacher: true }); }
+      if ((D.ready && (any || Input.hit.has('KeyA'))) || (D.bt > 14 && !Sound.reading) || D.bt > 60) { Sound.quiet(); D.stage = 'cont'; D.ct = 10.99; D.sec = 11; this.vo('continue', { cut: true }); }
       return;
     }
     if (D.stage === 'cont') {
@@ -839,7 +911,6 @@ const Play = {
       if (blink(1)) bigText(ctx, 'DEMO PLAY', 2, BANDS.gold, W / 2, 182);
       Font.draw(ctx, TOUCH ? 'TAP TO PLAY' : 'PRESS ANY KEY', W / 2, 202, '#fff', { align: 'center', outline: '#000' });
     }
-    if (this.paused) { ctx.globalAlpha = .6; rect(ctx, 0, 0, W, H, '#000'); ctx.globalAlpha = 1; bigText(ctx, 'PAUSED', 3, BANDS.blue, W / 2, 90); Font.draw(ctx, TOUCH ? 'TAP TO GO ON' : 'ESC TO GO ON', W / 2, 124, '#ffffff', { bold: true, align: 'center', outline: '#000' }); }
   },
   drawHud(ctx) {
     const o = { bold: true, outline: '#000' };

@@ -13,7 +13,7 @@
     document.body.classList.toggle('land', touch && land);
     // Portrait: the pad sits under the screen. Landscape: its halves stand in the margins either
     // side, so the screen leaves room for the wider of them.
-    const below = touch ? (land ? 0 : pad.offsetHeight + document.getElementById('turn').offsetHeight + 8) : 24;
+    const below = touch ? (land ? 0 : pad.offsetHeight + document.getElementById('turn').offsetHeight + 8) : 0;
     const fits = () => {
       const side = touch && land ? Math.max(...[...pad.children].map(g => g.offsetWidth)) + 16 : 0;
       return Math.min((innerWidth - side * 2) / W, (innerHeight - below) / H);
@@ -39,8 +39,10 @@
     if (STOP.has(e.code)) e.preventDefault();
   });
   addEventListener('keyup', e => Input.held.delete(e.code));
+  // Sound may only start on a finished tap or click, so those count as well as a finger going down.
+  for (const ev of ['pointerup', 'touchend', 'click']) addEventListener(ev, () => Sound.init(), { capture: true, passive: true });
   addEventListener('blur', () => { Input.held.clear(); Input.vheld.clear(); });
-  document.addEventListener('visibilitychange', () => { if (document.hidden && Game.scene === Play && !['over', 'clear'].includes(Play.phase)) Play.pause(true); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && Game.scene === Play && !Play.demo && !['over', 'clear'].includes(Play.phase)) Options.show(); });
   cv.addEventListener('pointerdown', e => {
     Sound.init();
     const r = cv.getBoundingClientRect();

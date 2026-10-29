@@ -7,15 +7,21 @@ const Sound = (() => {
   let ac = null, out, sfx, mus, noise, muted = Store.get('mute', false);
   const waves = {};
 
+  // Called on every key, tap and click. A browser lets sound start only inside a finished tap or click
+  // or a key press (a finger going down isn't one yet), so it keeps trying until the sound is running.
   let woke = false;
   function init() {
-    if (!woke && window.speechSynthesis) {
+    const live = !navigator.userActivation || navigator.userActivation.isActive;
+    if (!woke && live && window.speechSynthesis) {
       woke = true;
       try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); } catch (e) { /* no voice */ }
     }
-    if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
+    // Suspended, or "interrupted" on an iPhone after a call or another app: start it again.
+    if (ac) { if (ac.state !== 'running' && ac.state !== 'closed') ac.resume(); return; }
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
+    // iPhones and iPads: play with the ring/silent switch on, the way games do. The game has its own mute.
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { /* older iOS */ }
     ac = new AC();
     out = ac.createGain(); out.gain.value = muted ? 0 : 0.7;
     const comp = ac.createDynamicsCompressor();
@@ -288,11 +294,13 @@ const Sound = (() => {
   }
 
   // A question read aloud, with the music down while it's read. Returns false when it can't be.
-  function read(text) {
+  // o.teacher: Mr. Delgado going over the board, in a man's voice at its own pitch.
+  function read(text, o = {}) {
     if (muted || !window.speechSynthesis) return false;
     const u = new SpeechSynthesisUtterance(text);
-    u.rate = .92; u.pitch = 1.05; u.volume = 1;
-    if (rv) u.voice = rv;
+    u.rate = o.teacher ? .88 : .92; u.pitch = o.teacher ? .95 : 1.05; u.volume = 1;
+    const v = o.teacher ? sv || rv : rv;
+    if (v) u.voice = v;
     u.onstart = () => { if (ac) duck(true); }; u.onend = u.onerror = () => { if (ac && !talking) duck(false); };
     speechSynthesis.cancel();
     speechSynthesis.speak(u);
@@ -308,5 +316,5 @@ const Sound = (() => {
     if (muted && ac) hush();
     return muted;
   }
-  return { init, play, music, stopMusic, say, read, quiet, voice, hush, toggleMute, get muted() { return muted; }, get song() { return song && song.name; }, get talking() { return !!talking; } };
+  return { init, play, music, stopMusic, say, read, quiet, voice, hush, toggleMute, get muted() { return muted; }, get song() { return song && song.name; }, get talking() { return !!talking; }, get reading() { return !!window.speechSynthesis && speechSynthesis.speaking; } };
 })();

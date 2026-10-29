@@ -48,9 +48,9 @@ The key goes in `.secrets/elevenlabs-api-key.txt` (git-ignored) or `ELEVENLABS_A
 | R | Read the question aloud again (K to 2nd grade) |
 | M | Mute |
 | F | Full screen |
-| Esc | Pause |
+| Esc | Options: sound, Parent Mode, full screen and this list of controls; during a game it pauses |
 
-On a phone or tablet, an arcade panel appears: ◀ ▶ walk, A kicks and picks, B uses a TI-83, and COIN, START, SOUND (mute), PAUSE and, for K to 2nd grade, READ (hear the question again). Tap an answer to pick it, tap the question to hear it again, and tap through the screens between. Held upright, the panel sits under the game; turned sideways, its two halves stand either side of it.
+The keys are listed on the Options screen, not under the game. On a phone or tablet, an arcade panel appears: ◀ ▶ walk, A kicks and picks, B uses a TI-83, and COIN, START, SOUND (mute), MENU (the Options screen, and pause) and, for K to 2nd grade, READ (hear the question again). Tap an answer to pick it, tap the question to hear it again, and tap through the screens between. Held upright, the panel sits under the game; turned sideways, its two halves stand either side of it.
 
 ## The questions
 
@@ -70,7 +70,7 @@ Pick a grade before you play. Every grade is a bank of question generators: fres
 | High school | 84 | Algebra 1, Geometry and Algebra 2: factoring, quadratics, functions, logs, trig and the unit circle, proofs and constructions, circles, statistics and probability |
 | SAT prep | 63 | The SAT's blueprint: algebra, advanced math, problem-solving and data analysis, geometry and trig |
 
-The young grades lean on pictures drawn in pixel art: counting pictures, ten frames, base-ten blocks, clocks, coins, rulers, number lines, arrays, picture and bar graphs, shapes and fractions. Kindergarten to 2nd grade read every question aloud (R reads it again). Question kinds are dealt like a deck of cards: every kind comes up once before any comes up twice, and the deck carries over from game to game, with topics spread out so you don't get three money questions in a row. Nearly every kind is in the deck from the first lap; only the stretch kinds wait for the second. The right answer lands in a random slot.
+The young grades lean on pictures drawn in pixel art: counting pictures, ten frames, base-ten blocks, clocks, coins, rulers, number lines, arrays, picture and bar graphs, shapes and fractions. Kindergarten to 2nd grade read every question aloud (R reads it again), and after a wrong answer Mr. Delgado reads the chalkboard out too: what you said, each step, and the answer. Those words are made fresh with every question, so they're in the browser's own voice, not a recording. Question kinds are dealt like a deck of cards: every kind comes up once before any comes up twice, and the deck carries over from game to game, with topics spread out so you don't get three money questions in a row. Nearly every kind is in the deck from the first lap; only the stretch kinds wait for the second. The right answer lands in a random slot.
 
 ```
 python tools/qtest.py                 # self-test every generator in every grade: right answer, 4 distinct choices, drawable, fits
