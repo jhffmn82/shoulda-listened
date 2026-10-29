@@ -36,6 +36,14 @@
   body.land #pad .move { left: max(10px, env(safe-area-inset-left)); bottom: 14px; }
   body.land #pad .act { right: max(10px, env(safe-area-inset-right)); bottom: 14px; }
   body.land #pad .sysrow { right: max(10px, env(safe-area-inset-right)); top: 10px; width: 116px; justify-content: flex-end; }
+  /* Small phones sideways: slim columns, the arrows one above the other, so the game stays big. */
+  body.land.slim #pad .move, body.land.slim #pad .act { flex-direction: column; gap: 8px; bottom: 10px; }
+  body.land.slim #pad .move { left: max(6px, env(safe-area-inset-left)); }
+  body.land.slim #pad .act { right: max(6px, env(safe-area-inset-right)); }
+  body.land.slim #pad button.dir { width: 56px; height: 52px; }
+  body.land.slim #pad button.a, body.land.slim #pad button.b { width: 56px; height: 56px; }
+  body.land.slim #pad .sysrow { left: max(6px, env(safe-area-inset-left)); right: auto; top: 6px; width: 56px; flex-direction: column; gap: 5px; }
+  body.land.slim #pad button.sys { width: 56px; height: 28px; }
   #pad .sysrow button.read { display: none; }
   body.read #pad .sysrow button.read { display: block; background: #2a8a3a; }
   #turn { display: none; font-size: 12px; color: #8a8aa8; padding: 2px 0 6px; text-align: center; }

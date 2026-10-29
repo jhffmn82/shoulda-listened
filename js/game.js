@@ -85,11 +85,13 @@ const Game = {
   start() { this.go(location.hash === '#skip' ? Attract : Boot); },
   update(dt) {
     this.t += dt;
-    if (Input.pressed('mute')) Sound.toggleMute();
-    if (Input.pressed('full')) {
+    // While initials are typed, M, F and 5 are letters, not mute, full screen and coin (the pad's buttons still work).
+    const typing = this.scene === Entry, key = act => Input.vhit.has(act) || (!typing && Input.pressed(act));
+    if (key('mute') || (typing && Input.hit.has('Digit0'))) Sound.toggleMute();
+    if (key('full')) {
       try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); } catch (e) { /* not allowed */ }
     }
-    if (Input.pressed('coin')) this.coin();
+    if (key('coin')) this.coin();
     this.scene.update(dt);
   },
   coin() { if (this.credits < 9) this.credits++; Sound.play('coin'); },
@@ -340,6 +342,12 @@ const Play = {
   clock(q) { return Questions.byId(this.grade).clock[Math.min(4, this.loop - 1)] + (q.fig || q.text.length > 110 ? 5 : 0); },
   pop(x, y, text, color = '#fff') { this.pops.push({ x, y, text, color, t: 0 }); },
   add(points) { this.score += points; },
+  // Pausing stops the music, any voice and any question being read; going on brings the music back.
+  pause(on) {
+    if (this.demo || on === this.paused) return;
+    this.paused = on;
+    if (on) { Sound.stopMusic(); Sound.hush(); Sound.quiet(); } else Sound.music(this.E && this.E.phase === 'quiz' ? 'quiz' : 'street');
+  },
   // Someone says something (not in the demo). Returns how long it runs.
   vo(key, o) { return this.demo ? 0 : Sound.voice(key, o); },
 
@@ -351,7 +359,7 @@ const Play = {
       }
       Bot.think(this);
     }
-    if (!this.demo && (Input.pressed('pause') || (this.paused && Input.taps.length))) { this.paused = !this.paused; if (this.paused) Sound.stopMusic(); else Sound.music(this.E && this.E.phase === 'quiz' ? 'quiz' : 'street'); }
+    if (!this.demo && (Input.pressed('pause') || (this.paused && Input.taps.length))) this.pause(!this.paused);
     if (this.paused) return;
     if (this.stop > 0) { this.stop -= dt; return; }
     Game.shake = Math.max(0, Game.shake - dt * 24);
@@ -461,6 +469,7 @@ const Play = {
       if (E.t > .45 && !car.gun) { car.gun = 'sit'; car.gt = 0; }
       if (E.t > .8) { car.gun = 'aim'; car.gt = 0; Sound.play('cock'); h.state = 'hands'; this.goto('talk'); E.talkFor = this.vo('g-' + words(E.line), { wait: 2 }); }
     } else if (E.phase === 'talk') {
+      if (this.ctl.pressed('fire')) E.lastFire = Game.t;
       if (E.t > Math.max(1.6, (E.talkFor || 0) + .2) || (E.t > .5 && this.ctl.pressed('fire'))) {
         this.goto('quiz');
         if (!this.demo) Sound.music('quiz');
@@ -495,7 +504,13 @@ const Play = {
     if (L.cols < 4 && c.pressed('navU')) move(-L.cols);
     if (L.cols < 4 && c.pressed('navD')) move(L.cols);
     for (let k = 0; k < 4; k++) if (c.pressed('a' + k) && !E.elim.includes(k)) return this.answer(k);
-    if (c.pressed('fire') || (!this.demo && Input.pressed('enter'))) return this.answer(E.sel);
+    // A or Enter picks the highlighted answer, but not as part of mashing: a press within a third of a
+    // second of the last one (or in the panel's first moments) is someone hammering past the gunman.
+    if (c.pressed('fire') || (!this.demo && Input.pressed('enter'))) {
+      const mash = Game.t - (E.lastFire == null ? -9 : E.lastFire) < .35;
+      E.lastFire = Game.t;
+      if (this.demo || (E.t > .6 && !mash)) return this.answer(E.sel);
+    }
     for (const t of Input.taps) {
       if (!this.demo && READ_ALOUD.includes(this.grade) && L.boxes.length && t.y >= L.y && t.y < L.y + L.boxes[0].y) { Sound.read(speakable(E.q)); continue; }
       const k = Quiz.hit(L, L.y, t.x, t.y);
@@ -571,7 +586,7 @@ const Play = {
     }
     if (h.t < .3) h.x -= 50 * dt;
     if (!h.down && h.t > Sprites.hero.shot.length / 14) {
-      h.down = true; Sound.play('thud'); Game.shake = 3;
+      h.down = true; Sound.play(Game.parent ? 'splash' : 'thud'); Game.shake = 3;
       this.decals.push({ x: h.x + (h.face < 0 ? -1 : 1) * (Sprites.hero.deadCx || 0), r: 0, max: 24 });
     }
     if (E.t > Math.max(1.2, E.sayFor || 0) && car.gun) { car.gun = null; car.leaving = true; Sound.play('screech'); Sound.play('engine', 1); }
@@ -591,7 +606,9 @@ const Play = {
     if (D.stage === 'board') {
       D.bt += dt;
       if (this.demo && D.bt > 4) return Game.go(Attract, 'title');
-      if ((D.bt > Math.max(.8, (D.boardFor || 0) + .1) && any) || D.bt > 14) { D.stage = 'cont'; D.ct = 10.99; D.sec = 11; this.vo('continue', { cut: true }); }
+      // Mr. Delgado finishes his line first; then A (the button, Z, or the A key), Start or a tap moves on.
+      D.ready = D.bt > Math.max(.8, (D.boardFor || 0) + .1);
+      if ((D.ready && (any || Input.hit.has('KeyA'))) || D.bt > 14) { D.stage = 'cont'; D.ct = 10.99; D.sec = 11; this.vo('continue', { cut: true }); }
       return;
     }
     if (D.stage === 'cont') {
@@ -637,7 +654,7 @@ const Play = {
 
   // ---- Home.
   startClear() {
-    this.phase = 'clear';
+    this.phase = 'clear'; this.banner = null;
     this.Cl = { t: 0, stage: 'walk' };
     for (const car of this.cars) car.flee = true;
     Sound.stopMusic();
@@ -820,7 +837,7 @@ const Play = {
     if (this.phase === 'clear') this.drawClear(ctx);
     if (this.demo) {
       if (blink(1)) bigText(ctx, 'DEMO PLAY', 2, BANDS.gold, W / 2, 182);
-      Font.draw(ctx, 'PRESS ANY KEY', W / 2, 202, '#fff', { align: 'center', outline: '#000' });
+      Font.draw(ctx, TOUCH ? 'TAP TO PLAY' : 'PRESS ANY KEY', W / 2, 202, '#fff', { align: 'center', outline: '#000' });
     }
     if (this.paused) { ctx.globalAlpha = .6; rect(ctx, 0, 0, W, H, '#000'); ctx.globalAlpha = 1; bigText(ctx, 'PAUSED', 3, BANDS.blue, W / 2, 90); Font.draw(ctx, TOUCH ? 'TAP TO GO ON' : 'ESC TO GO ON', W / 2, 124, '#ffffff', { bold: true, align: 'center', outline: '#000' }); }
   },
@@ -942,12 +959,13 @@ const Play = {
     ctx.globalAlpha = .65; rect(ctx, 0, 0, W, H, '#000'); ctx.globalAlpha = 1;
     bigText(ctx, 'CONTINUE?', 3, BANDS.blue, W / 2, 46);
     bigText(ctx, String(Math.max(0, Math.ceil(D.ct) - 1)), 6, BANDS.gold, W / 2, 78);
-    if (blink(1.5)) Font.draw(ctx, Game.credits ? 'PRESS START' : 'INSERT COIN', W / 2, 146, '#ffffff', { bold: true, align: 'center', outline: '#000' });
+    // Start (or a tap) continues even with no credit left: it drops the coin in for you.
+    if (blink(1.5)) Font.draw(ctx, TOUCH ? 'TAP TO CONTINUE' : 'PRESS START TO CONTINUE', W / 2, 146, '#ffffff', { bold: true, align: 'center', outline: '#000' });
     Font.draw(ctx, 'CREDIT ' + Game.credits, W / 2, 160, '#9098c8', { align: 'center' });
   },
   drawBoard(ctx, k) {
     const E = this.E;
-    if (E && E.q) Quiz.drawBoard(ctx, E.q, E.pick, E.L.figC, k, this.D.bt > .8);
+    if (E && E.q) Quiz.drawBoard(ctx, E.q, E.pick, E.L.figC, k, this.D.ready && (TOUCH ? 'TAP OR PRESS A' : 'PRESS A'));
   },
   drawOver(ctx) {
     const O = this.O;
@@ -1011,10 +1029,10 @@ const Entry = {
   update(dt) {
     this.t += dt;
     const K = this.KEYS, cols = 8;
-    if (Input.pressed('navL') || Input.pressed('left')) { this.cur = (this.cur + K.length - 1) % K.length; Sound.play('select'); }
-    if (Input.pressed('navR') || Input.pressed('right')) { this.cur = (this.cur + 1) % K.length; Sound.play('select'); }
-    if (Input.pressed('navU') || Input.pressed('up')) { this.cur = (this.cur + K.length - cols) % K.length; Sound.play('select'); }
-    if (Input.pressed('navD') || Input.pressed('down')) { this.cur = (this.cur + cols) % K.length; Sound.play('select'); }
+    if (Input.pressed('navL') || Input.vhit.has('left')) { this.cur = (this.cur + K.length - 1) % K.length; Sound.play('select'); }
+    if (Input.pressed('navR') || Input.vhit.has('right')) { this.cur = (this.cur + 1) % K.length; Sound.play('select'); }
+    if (Input.pressed('navU')) { this.cur = (this.cur + K.length - cols) % K.length; Sound.play('select'); }
+    if (Input.pressed('navD')) { this.cur = (this.cur + cols) % K.length; Sound.play('select'); }
     // Letter keys type; Space or the A button takes the highlighted key; Enter is done.
     const typed = Input.typed.filter(ch => /^[a-z.!?]$/i.test(ch));
     if (typed.length) { for (const ch of typed) this.pick(ch.toUpperCase()); return; }

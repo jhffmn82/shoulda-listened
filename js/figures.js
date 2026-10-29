@@ -132,7 +132,9 @@ const Figures = (() => {
         const s = Math.min(w - 16, (h - 16) / cy), x0 = Math.round((w - s) / 2);
         const A = [x0, h - 6], B = [x0 + s, h - 6], C = [x0 + cx * s, h - 6 - cy * s];
         line(c, ...A, ...B, INK); line(c, ...B, ...C, INK); line(c, ...C, ...A, INK);
-        label(c, a + '°', A[0] + 16, A[1] - 6); label(c, b + '°', B[0] - 16, B[1] - 6); label(c, 'x°', C[0], C[1] + 14, HOT);
+        // A flat triangle has no room for x inside it, by the base angles: it goes just above the apex.
+        const inside = cy * s > 28;
+        label(c, a + '°', A[0] + 16, A[1] - 6); label(c, b + '°', B[0] - 16, B[1] - 6); label(c, 'x°', C[0], inside ? C[1] + 14 : C[1] - 7, HOT);
       },
     };
   };

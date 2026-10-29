@@ -14,8 +14,15 @@
     // Portrait: the pad sits under the screen. Landscape: its halves stand in the margins either
     // side, so the screen leaves room for the wider of them.
     const below = touch ? (land ? 0 : pad.offsetHeight + document.getElementById('turn').offsetHeight + 8) : 24;
-    const side = touch && land ? Math.max(...[...pad.children].map(g => g.offsetWidth)) + 20 : 0;
-    let s = Math.min((innerWidth - side * 2) / W, (innerHeight - below) / H);
+    const fits = () => {
+      const side = touch && land ? Math.max(...[...pad.children].map(g => g.offsetWidth)) + 16 : 0;
+      return Math.min((innerWidth - side * 2) / W, (innerHeight - below) / H);
+    };
+    // Sideways, the buttons stand either side of the game; where that would shrink it (small
+    // phones), they stack in slim columns instead.
+    document.body.classList.remove('slim');
+    let s = fits();
+    if (touch && land && s < .95 * innerHeight / H) { document.body.classList.add('slim'); s = fits(); }
     if (s >= 2) s = Math.floor(s);                     // whole-number scaling keeps every pixel square
     const scr = document.getElementById('screen'), crt = document.getElementById('crt');
     scr.style.width = Math.floor(W * s) + 'px'; scr.style.height = Math.floor(H * s) + 'px';
@@ -33,6 +40,7 @@
   });
   addEventListener('keyup', e => Input.held.delete(e.code));
   addEventListener('blur', () => { Input.held.clear(); Input.vheld.clear(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && Game.scene === Play && !['over', 'clear'].includes(Play.phase)) Play.pause(true); });
   cv.addEventListener('pointerdown', e => {
     Sound.init();
     const r = cv.getBoundingClientRect();

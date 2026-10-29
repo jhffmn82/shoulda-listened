@@ -346,10 +346,16 @@ const World = (() => {
     for (let i = 0; i < n; i++) S.encounters.push(Math.round(380 + (S.homeX - 640) * i / (n - 1 || 1) + (r() - .5) * 90));
     // Lamps, then small props and trash cans in the gaps.
     const nearTree = (x, d) => S.trees.some(t => Math.abs(t.x - x) < d);
-    for (let lx = 90 + r() * 60; lx < S.length - 60; lx += 170 + r() * 70) if (!nearTree(lx, 44)) S.lamps.push(Math.round(lx));
+    if (S.mid) {
+      // Lamps stand on the joins between storefronts that have no tree, like the trees do, so a post
+      // never crosses a shop's sign.
+      let last = -999;
+      for (const b of S.buildings.slice(1)) if (b.x > 80 && b.x < S.length - 60 && !nearTree(b.x, 60) && b.x - last >= 150) { S.lamps.push(b.x); last = b.x; }
+    } else for (let lx = 90 + r() * 60; lx < S.length - 60; lx += 170 + r() * 70) if (!nearTree(lx, 44)) S.lamps.push(Math.round(lx));
     const PROPS = ['hydrant', 'meter', 'newsbox', 'payphone', 'mailbox', 'meter', 'hydrant'];
     for (let px = 140; px < S.length - 120; px += 70 + r() * 90) {
-      if (S.lamps.some(l => Math.abs(l - px) < 26) || nearTree(px, 30)) continue;
+      // Clear of lamp posts, and of the trees' iron guards.
+      if (S.lamps.some(l => Math.abs(l - px) < 26) || nearTree(px, 46)) continue;
       if (r() < .45) S.cans.push(Math.round(px));
       else S.props.push({ k: PROPS[Math.floor(r() * PROPS.length)], x: Math.round(px) });
     }

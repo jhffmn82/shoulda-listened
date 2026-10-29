@@ -144,7 +144,7 @@ const Quiz = (() => {
     for (const s of B.ans) { Font.draw(ctx, s, x0 + 8, y, yel, { bold: true }); y += 10; }
     Font.draw(ctx, '- MR. DELGADO, PERIOD 3', x0 + w - 8, y0 + hh - 12, '#a8c8b4', { align: 'right' });
     rect(ctx, x0 + 20, y0 + hh, 26, 4, '#e8e8e0'); rect(ctx, x0 + 60, y0 + hh, 8, 3, '#f0f0f0');
-    if (prompt && blink(2)) Font.draw(ctx, 'PRESS A', x0 + 8, y0 + hh - 12, yel, { bold: true });
+    if (prompt && blink(2)) Font.draw(ctx, typeof prompt === 'string' ? prompt : 'PRESS A', x0 + 8, y0 + hh - 12, yel, { bold: true });
   }
 
   // Why a question won't display well, or null. Checked with the power-up line, the tallest case.
