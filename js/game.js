@@ -53,12 +53,14 @@ const GRADE_INFO = {
 // The young grades get each question read aloud too.
 const READ_ALOUD = ['k', '1', '2'];
 // Every grade but SAT prep ends with a report card: the share of right answers as a letter.
-const CARDS = [[.95, 'A+', 'a-plus', 'GOLD STAR. FRAME IT.'], [.9, 'A', 'a', 'GO SHOW YOUR MOM.'], [.8, 'B', 'b', 'SOLID WORK. KEEP IT UP.'],
-  [.7, 'C', 'c', 'RIGHT DOWN THE MIDDLE.'], [.6, 'D', 'd', 'WE SHOULD TALK.'], [0, 'F', 'f', 'DID YOU WRITE YOUR NAME?']];
+// The last words are Mr. Delgado's line, for the grades where he speaks in the reading voice.
+const CARDS = [[.95, 'A+', 'a-plus', 'GOLD STAR. FRAME IT.', 'A plus! Gold star. Frame it.'], [.9, 'A', 'a', 'GO SHOW YOUR MOM.', 'An A. Go show your mom.'],
+  [.8, 'B', 'b', 'SOLID WORK. KEEP IT UP.', 'A B. Solid work. Keep it up.'], [.7, 'C', 'c', 'RIGHT DOWN THE MIDDLE.', 'A C. Right down the middle.'],
+  [.6, 'D', 'd', 'WE SHOULD TALK.', 'A D. We should talk.'], [0, 'F', 'f', 'DID YOU WRITE YOUR NAME?', 'An F. Did you write your name?']];
 function reportCard(log) {
   const ok = log.filter(l => l.ok).length, share = log.length ? ok / log.length : 0;
-  const [, letter, key, joke] = CARDS.find(([s, l]) => share >= s && (l !== 'A+' || log.length >= 5));
-  return { letter, key, joke, ok, n: log.length };
+  const [, letter, key, joke, say] = CARDS.find(([s, l]) => share >= s && (l !== 'A+' || log.length >= 5));
+  return { letter, key, joke, say, ok, n: log.length };
 }
 // Words a speech voice can say: symbols spelled out, a "?" standing in for a number asked for.
 function spoken(s) {
@@ -421,6 +423,8 @@ const Play = {
   },
   // Someone says something (not in the demo). Returns how long it runs.
   vo(key, o) { return this.demo ? 0 : Sound.voice(key, o); },
+  // Kindergarten to 2nd grade: questions, the chalkboard and Mr. Delgado are read aloud.
+  reads() { return !this.demo && READ_ALOUD.includes(this.grade); },
 
   update(dt) {
     if (this.demo) {
@@ -672,14 +676,20 @@ const Play = {
     const any = this.ctl.pressed('fire') || Input.pressed('start') || Input.taps.length;
     // "You lose! Shoulda listened to your math teacher." is said in full before the chalkboard comes down.
     const said = D.slam && D.t > .6 + (D.loseFor || 0) + .2;
-    if (D.stage === 'lose' && said && (D.t > 4.2 || (D.t > 1.8 && any))) { D.stage = 'board'; D.bt = 0; D.boardFor = this.vo('board', { wait: 4 }); return; }
+    // Kindergarten to 2nd grade: Mr. Delgado reads the whole board out, so he speaks in the reading voice
+    // there, his line too, rather than a recording that changes voice halfway through.
+    const reads = this.reads();
+    if (D.stage === 'lose' && said && (D.t > 4.2 || (D.t > 1.8 && any))) { D.stage = 'board'; D.bt = 0; D.boardFor = reads ? 2.4 : this.vo('board', { wait: 4 }); return; }
     if (D.stage === 'board') {
       D.bt += dt;
       if (this.demo && D.bt > 4) return Game.go(Attract, 'title');
-      // Mr. Delgado finishes his line first; then A (the button, Z, or the A key), Start or a tap moves on.
+      // Mr. Delgado gets his first words out; then A (the button, Z, or the A key), Start or a tap moves on.
       D.ready = D.bt > Math.max(.8, (D.boardFor || 0) + .1);
-      // Kindergarten to 2nd grade: then he reads the board out. R (or READ) reads it again; A stops him.
-      if (!this.demo && READ_ALOUD.includes(this.grade) && this.E && ((D.ready && !D.read) || Input.pressed('read'))) { D.read = true; Sound.read(boardSpeech(this.E.q, this.E.pick), { teacher: true }); }
+      // R (or READ) reads the board again; moving on stops him.
+      if (reads && this.E && ((!D.read && !Sound.talking) || Input.pressed('read'))) {
+        Sound.read((D.read ? '' : "Okay. Let's go over it. ") + boardSpeech(this.E.q, this.E.pick), { teacher: true });
+        D.read = true;
+      }
       if ((D.ready && (any || Input.hit.has('KeyA'))) || (D.bt > 14 && !Sound.reading) || D.bt > 60) { Sound.quiet(); D.stage = 'cont'; D.ct = 10.99; D.sec = 11; this.vo('continue', { cut: true }); }
       return;
     }
@@ -716,7 +726,8 @@ const Play = {
   over(dt) {
     const O = this.O;
     O.t += dt;
-    if (!O.joked && O.t > 2.2) { O.joked = true; this.vo(O.card ? 'card-' + O.card.key : 'sat-' + O.band, { wait: 3 }); }
+    if (!O.joked && O.t > 2.2 && this.reads()) { if (!Sound.talking) { O.joked = true; Sound.read(O.card.say, { teacher: true }); } }
+    else if (!O.joked && O.t > 2.2) { O.joked = true; this.vo(O.card ? 'card-' + O.card.key : 'sat-' + O.band, { wait: 3 }); }
     if (O.t > 7 || (O.t > 2.5 && (this.ctl.pressed('fire') || Input.pressed('start') || Input.taps.length))) {
       const score = this.score + Math.min(9, this.cont);
       if (Game.rank(score) >= 0) Game.go(Entry, { score, sat: O.sat, grade: this.grade, card: O.card && O.card.letter });
