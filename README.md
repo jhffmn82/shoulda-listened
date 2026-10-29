@@ -46,11 +46,11 @@ The key goes in `.secrets/elevenlabs-api-key.txt` (git-ignored) or `ELEVENLABS_A
 | X | Use a TI-83 |
 | P | Parent Mode (title screen or grade picker) |
 | R | Read the question aloud again (K to 2nd grade) |
-| M | Mute |
+| M | Mute, until the page is closed (the next visit starts with sound on) |
 | F | Full screen |
-| Esc | Options: sound, Parent Mode, full screen and this list of controls; during a game it pauses |
+| Esc | Options: sound, Parent Mode, full screen and this list of controls; during a game it pauses. The gear in the top-right corner of the screen opens it too |
 
-The keys are listed on the Options screen, not under the game. On a phone or tablet, an arcade panel appears: ◀ ▶ walk, A kicks and picks, B uses a TI-83, and COIN, START, SOUND (mute), MENU (the Options screen, and pause) and, for K to 2nd grade, READ (hear the question again). Tap an answer to pick it, tap the question to hear it again, and tap through the screens between. Held upright, the panel sits under the game; turned sideways, its two halves stand either side of it.
+The keys are listed on the Options screen, not under the game; click or tap the gear in the top-right corner to get there. On a phone or tablet, an arcade panel appears: ◀ ▶ walk, A kicks and picks, B uses a TI-83, and COIN, START, SOUND (mute), MENU (the Options screen, and pause) and, for K to 2nd grade, READ (hear the question again). Tap an answer to pick it, tap the question to hear it again, and tap through the screens between. Held upright, the panel sits under the game; turned sideways, its two halves stand either side of it.
 
 ## The questions
 

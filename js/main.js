@@ -49,6 +49,11 @@
     Input.taps.push({ x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H });
     Input.any = true;
   });
+  // A pointer over the gear in the corner shows it can be clicked.
+  cv.addEventListener('pointermove', e => {
+    const r = cv.getBoundingClientRect();
+    cv.style.cursor = Options.gearAt((e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * H) ? 'pointer' : '';
+  });
   const muteBtn = document.querySelector('#pad [data-act=mute]');
   let shownMute = null, shownRead = null;
   function padState() {

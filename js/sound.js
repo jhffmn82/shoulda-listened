@@ -4,7 +4,9 @@
 // browser's speech voice, pitched down like a 90s digitized announcer.
 
 const Sound = (() => {
-  let ac = null, out, sfx, mus, noise, muted = Store.get('mute', false);
+  // Muting lasts until the page is closed: a mute saved for next time was too easy to forget about.
+  let ac = null, out, sfx, mus, noise, muted = false;
+  try { localStorage.removeItem('shoulda.mute'); } catch (e) { /* nothing saved */ }
   const waves = {};
 
   // Called on every key, tap and click. A browser lets sound start only inside a finished tap or click
@@ -310,7 +312,6 @@ const Sound = (() => {
 
   function toggleMute() {
     muted = !muted;
-    Store.set('mute', muted);
     if (out) out.gain.value = muted ? 0 : 0.7;
     if (muted && window.speechSynthesis) speechSynthesis.cancel();
     if (muted && ac) hush();

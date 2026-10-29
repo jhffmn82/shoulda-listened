@@ -99,7 +99,7 @@ const Game = {
     if (key('mute') || (typing && Input.hit.has('Digit0'))) Sound.toggleMute();
     if (key('full')) this.fullScreen();
     if (Options.open) return Options.update(dt);
-    if (this.scene !== Boot && Input.pressed('pause')) return Options.show();
+    if (this.scene !== Boot && (Input.pressed('pause') || Input.taps.some(t => Options.gearAt(t.x, t.y)))) return Options.show();
     if (key('coin')) this.coin();
     this.scene.update(dt);
   },
@@ -112,7 +112,7 @@ const Game = {
     this.scene.draw(ctx);
     ctx.restore();
     if (this.flash > 0) { ctx.globalAlpha = Math.min(1, this.flash); rect(ctx, 0, 0, W, H, '#fff'); ctx.globalAlpha = 1; }
-    if (Options.open) Options.draw(ctx);
+    if (Options.open) Options.draw(ctx); else if (this.scene !== Boot) Options.drawGear(ctx);
   },
   setParent(on) { this.parent = on; Store.set('parent', on); buildArt(on); },
   rank(score) { return this.scores.findIndex(s => score > s.score); },
@@ -126,6 +126,20 @@ const Options = {
     ['R', 'READ IT AGAIN'], ['ESC', 'PAUSE, OPTIONS'], ['M', 'SOUND'], ['F', 'FULL SCREEN'], ['P', 'PARENT MODE']],
   PAD: [['← →', 'WALK'], ['A', 'KICK'], ['TAP', 'ANSWER'], ['B', 'CALCULATOR'], ['A', 'ANSWER TOO'], ['READ', 'READ IT AGAIN'],
     ['START', 'START'], ['MENU', 'PAUSE, OPTIONS'], ['COIN', 'COIN'], ['SOUND', 'SOUND']],
+  // The gear in the top-right corner of every screen: click or tap it for this screen.
+  GEAR: ['....###....', '.##.###.##.', '.#########.', '..##...##..', '###.....###', '###.....###', '###.....###', '..##...##..', '.#########.', '.##.###.##.', '....###....'],
+  gearAt(x, y) { return Game.scene !== Boot && !this.open && x >= W - 26 && y < 16; },
+  drawGear(ctx) {
+    if (!this.gear) {
+      const G = this.GEAR, n = G.length, c = this.gear = canvas(n + 2, n + 2), g = c.getContext('2d');
+      const on = (x, y) => G[y] && G[y][x] === '#';
+      for (let y = -1; y <= n; y++) for (let x = -1; x <= n; x++) {
+        const edge = !on(x, y) && (on(x - 1, y) || on(x + 1, y) || on(x, y - 1) || on(x, y + 1));
+        if (on(x, y) || edge) { g.fillStyle = edge ? '#000' : '#d8dcf0'; g.fillRect(x + 1, y + 1, 1, 1); }
+      }
+    }
+    ctx.drawImage(this.gear, W - this.gear.width - 2, 0);
+  },
   playing: () => Game.scene === Play && !Play.demo,
   rows() {
     const r = [['back', this.playing() ? 'GO ON' : 'BACK'], ['sound', 'SOUND: ' + (Sound.muted ? 'OFF' : 'ON')]];
@@ -356,7 +370,7 @@ const Select = {
     if (READ_ALOUD.includes(g.id)) Font.draw(ctx, TOUCH ? 'EVERY QUESTION IS READ ALOUD. TAP IT TO HEAR IT AGAIN.' : 'EVERY QUESTION IS READ ALOUD. R READS IT AGAIN.', W / 2, 176, '#80ff80', { align: 'center', outline: '#000' });
     Font.draw(ctx, (TOUCH ? 'TAP HERE: PARENT MODE ' : 'P: PARENT MODE ') + (Game.parent ? 'ON (WATER GUNS)' : 'OFF'), W / 2, 189, Game.parent ? '#60e0ff' : '#c8c8d8', { align: 'center', outline: '#000' });
     Font.draw(ctx, TOUCH ? 'TAP A GRADE' : 'ARROWS TO PICK, Z OR ENTER TO START', W / 2, 202, '#9098c8', { align: 'center', outline: '#000' });
-    if (!this.chosen) Font.draw(ctx, pad(Math.max(0, 20 - this.t), 2), W - 10, 8, this.t > 15 && blink(3) ? '#ff4040' : '#ffffff', { bold: true, align: 'right', outline: '#000' });
+    if (!this.chosen) Font.draw(ctx, pad(Math.max(0, 20 - this.t), 2), 10, 8, this.t > 15 && blink(3) ? '#ff4040' : '#ffffff', { bold: true, outline: '#000' });
   },
 };
 
