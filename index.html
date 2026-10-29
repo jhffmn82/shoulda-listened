@@ -22,12 +22,24 @@
   #crt.off { background: none; }
   #help { font-size: 11px; padding: 6px 8px 0; text-align: center; line-height: 1.5; }
   #help b { color: #bbb; font-weight: normal; }
-  /* Touch controls: an arcade panel under the screen. */
-  #pad { display: none; width: 100%; max-width: 640px; justify-content: space-between; align-items: center; padding: 10px 14px; box-sizing: border-box; }
-  body.touch #pad { display: flex; }
+  /* Touch controls: an arcade panel under the screen (sideways: in the margins beside it). */
+  #pad { display: none; width: 100%; max-width: 640px; padding: 8px 14px 6px; box-sizing: border-box;
+    grid-template-areas: "sys sys" "move act"; grid-template-columns: 1fr 1fr; row-gap: 10px; }
+  body.touch #pad { display: grid; }
   body.touch #help { display: none; }
-  body.land #pad { position: fixed; left: 0; right: 0; bottom: 0; max-width: none; opacity: .55; }
   #pad .grp { display: flex; gap: 12px; align-items: center; }
+  #pad .sysrow { grid-area: sys; display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+  #pad .move { grid-area: move; justify-self: start; }
+  #pad .act { grid-area: act; justify-self: end; }
+  body.land #pad { position: fixed; inset: 0; max-width: none; padding: 0; display: block; pointer-events: none; }
+  body.land #pad > * { position: absolute; pointer-events: auto; }
+  body.land #pad .move { left: max(10px, env(safe-area-inset-left)); bottom: 14px; }
+  body.land #pad .act { right: max(10px, env(safe-area-inset-right)); bottom: 14px; }
+  body.land #pad .sysrow { right: max(10px, env(safe-area-inset-right)); top: 10px; width: 116px; justify-content: flex-end; }
+  #pad .sysrow button.read { display: none; }
+  body.read #pad .sysrow button.read { display: block; background: #2a8a3a; }
+  #turn { display: none; font-size: 12px; color: #8a8aa8; padding: 2px 0 6px; text-align: center; }
+  body.touch:not(.land) #turn { display: block; }
   #pad button {
     width: 62px; height: 62px; border-radius: 50%; border: 3px solid #222; color: #fff;
     font: bold 15px monospace; touch-action: none; -webkit-tap-highlight-color: transparent;
@@ -36,17 +48,18 @@
   #pad button.dir { background: #333; border-radius: 12px; width: 58px; }
   #pad button.a { background: #d42020; }
   #pad button.b { background: #2050d4; }
-  #pad button.sys { width: 50px; height: 30px; border-radius: 6px; font-size: 11px; background: #555; }
+  #pad button.sys { width: 55px; height: 30px; border-radius: 6px; font-size: 11px; background: #555; }
   #pad button.on { filter: brightness(1.5); box-shadow: inset 0 3px 0 rgba(0, 0, 0, .35); }
 </style>
 </head>
 <body>
 <div id="screen"><canvas id="game" width="384" height="224"></canvas><div id="crt"></div></div>
 <div id="pad">
-  <div class="grp"><button class="dir" data-act="left">&#9664;</button><button class="dir" data-act="right">&#9654;</button></div>
-  <div class="grp" style="flex-direction: column; gap: 8px"><button class="sys" data-act="coin">COIN</button><button class="sys" data-act="start">START</button></div>
-  <div class="grp"><button class="b" data-act="calc">B</button><button class="a" data-act="fire">A</button></div>
+  <div class="sysrow"><button class="sys" data-act="coin">COIN</button><button class="sys" data-act="start">START</button><button class="sys" data-act="mute">SOUND</button><button class="sys" data-act="pause">PAUSE</button><button class="sys read" data-act="read">READ</button></div>
+  <div class="grp move"><button class="dir" data-act="left">&#9664;</button><button class="dir" data-act="right">&#9654;</button></div>
+  <div class="grp act"><button class="b" data-act="calc">B</button><button class="a" data-act="fire">A</button></div>
 </div>
+<div id="turn">Turn your phone sideways for a bigger screen.</div>
 <div id="help">
   <b>5</b> coin &middot; <b>1</b> or <b>Enter</b> start &middot; <b>&larr; &rarr;</b> walk &middot; <b>Z</b> kick &middot;
   <b>A B C D</b> or <b>1&ndash;4</b> answer &middot; <b>X</b> calculator &middot; <b>P</b> Parent Mode &middot; <b>M</b> mute &middot; <b>F</b> full screen &middot; <b>Esc</b> pause

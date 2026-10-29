@@ -184,8 +184,8 @@ const Attract = {
     bigText(ctx, 'TO YOUR MATH TEACHER', 2, BANDS.gold, W / 2, 88 + drop);
     Font.draw(ctx, 'AN EDUCATIONAL GAME*', W / 2, 114, '#a8b0e8', { align: 'center', outline: '#000' });
     if (blink(1.2)) bigText(ctx, Game.credits ? 'PUSH START' : 'INSERT COIN', 2, BANDS.gold, W / 2, 138);
-    Font.draw(ctx, Game.credits ? '1 OR ENTER TO PLAY' : '5 FOR A COIN, OR JUST PRESS ENTER', W / 2, 166, '#9098c8', { align: 'center', outline: '#000' });
-    Font.draw(ctx, 'P: PARENT MODE ' + (Game.parent ? 'ON (WATER GUNS)' : 'OFF'), W / 2, 200, Game.parent ? '#60e0ff' : '#c8c8d8', { align: 'center', outline: '#000' });
+    Font.draw(ctx, TOUCH ? 'TAP THE SCREEN TO PLAY' : Game.credits ? '1 OR ENTER TO PLAY' : '5 FOR A COIN, OR JUST PRESS ENTER', W / 2, 166, '#9098c8', { align: 'center', outline: '#000' });
+    Font.draw(ctx, (TOUCH ? 'TAP HERE: PARENT MODE ' : 'P: PARENT MODE ') + (Game.parent ? 'ON (WATER GUNS)' : 'OFF'), W / 2, 200, Game.parent ? '#60e0ff' : '#c8c8d8', { align: 'center', outline: '#000' });
     Font.draw(ctx, '*NOT REALLY', 8, 214, '#6870a0', { outline: '#000' });
     Font.draw(ctx, '© 1994 CHALKDUST', W - 8, 214, '#6870a0', { align: 'right', outline: '#000' });
   },
@@ -209,10 +209,13 @@ const Attract = {
   howto(ctx) {
     panel(ctx, 20, 8, W - 40, 196);
     bigText(ctx, 'HOW TO PLAY', 2, BANDS.gold, W / 2, 16);
-    const L = ['Pick your grade, kindergarten to SAT prep. Walk home:', '← → to walk, Z to kick cans. When a car pulls up, answer.',
-      'A B C D or 1-4 to answer. Wrong answer: YOU LOSE.', 'Answer fast for a bonus. 3 right in a row: TEACHER\'S PET.'];
+    const L = TOUCH
+      ? ['Pick your grade, kindergarten to SAT prep. Walk home:', '← → to walk, A to kick cans. When a car pulls up, answer.',
+        'Tap an answer (or ← → and A). Wrong answer: YOU LOSE.', 'Answer fast for a bonus. 3 right in a row: TEACHER\'S PET.']
+      : ['Pick your grade, kindergarten to SAT prep. Walk home:', '← → to walk, Z to kick cans. When a car pulls up, answer.',
+        'A B C D or 1-4 to answer. Wrong answer: YOU LOSE.', 'Answer fast for a bonus. 3 right in a row: TEACHER\'S PET.'];
     L.forEach((s, i) => Font.draw(ctx, s, 34, 44 + i * 12, '#e8ecff'));
-    const items = [['calc', 'TI-83: press X to cross out two wrong answers'], ['coffee', 'COFFEE: the next clock runs at half speed'],
+    const items = [['calc', `TI-83: press ${CALC_KEY} to cross out two wrong answers`], ['coffee', 'COFFEE: the next clock runs at half speed'],
       ['keeper', 'KEVLAR TRAPPER KEEPER: stops one bullet'], ['cash', 'CASH: points']];
     items.forEach(([k, s], i) => {
       const y = 104 + i * 22, img = Sprites[k];
@@ -275,8 +278,8 @@ const Select = {
     const g = this.list[this.cur];
     bigText(ctx, g.label, 2, BANDS.gold, W / 2, 140);
     Font.draw(ctx, GRADE_INFO[g.id] || '', W / 2, 164, '#ffffff', { bold: true, align: 'center', outline: '#000' });
-    if (READ_ALOUD.includes(g.id)) Font.draw(ctx, TOUCH ? 'EVERY QUESTION IS READ ALOUD.' : 'EVERY QUESTION IS READ ALOUD. R READS IT AGAIN.', W / 2, 176, '#80ff80', { align: 'center', outline: '#000' });
-    Font.draw(ctx, 'P: PARENT MODE ' + (Game.parent ? 'ON (WATER GUNS)' : 'OFF'), W / 2, 189, Game.parent ? '#60e0ff' : '#c8c8d8', { align: 'center', outline: '#000' });
+    if (READ_ALOUD.includes(g.id)) Font.draw(ctx, TOUCH ? 'EVERY QUESTION IS READ ALOUD. TAP IT TO HEAR IT AGAIN.' : 'EVERY QUESTION IS READ ALOUD. R READS IT AGAIN.', W / 2, 176, '#80ff80', { align: 'center', outline: '#000' });
+    Font.draw(ctx, (TOUCH ? 'TAP HERE: PARENT MODE ' : 'P: PARENT MODE ') + (Game.parent ? 'ON (WATER GUNS)' : 'OFF'), W / 2, 189, Game.parent ? '#60e0ff' : '#c8c8d8', { align: 'center', outline: '#000' });
     Font.draw(ctx, TOUCH ? 'TAP A GRADE' : 'ARROWS TO PICK, Z OR ENTER TO START', W / 2, 202, '#9098c8', { align: 'center', outline: '#000' });
     if (!this.chosen) Font.draw(ctx, pad(Math.max(0, 20 - this.t), 2), W - 10, 8, this.t > 15 && blink(3) ? '#ff4040' : '#ffffff', { bold: true, align: 'right', outline: '#000' });
   },
@@ -348,7 +351,7 @@ const Play = {
       }
       Bot.think(this);
     }
-    if (!this.demo && Input.pressed('pause')) { this.paused = !this.paused; if (this.paused) Sound.stopMusic(); else Sound.music(this.E && this.E.phase === 'quiz' ? 'quiz' : 'street'); }
+    if (!this.demo && (Input.pressed('pause') || (this.paused && Input.taps.length))) { this.paused = !this.paused; if (this.paused) Sound.stopMusic(); else Sound.music(this.E && this.E.phase === 'quiz' ? 'quiz' : 'street'); }
     if (this.paused) return;
     if (this.stop > 0) { this.stop -= dt; return; }
     Game.shake = Math.max(0, Game.shake - dt * 24);
@@ -494,6 +497,7 @@ const Play = {
     for (let k = 0; k < 4; k++) if (c.pressed('a' + k) && !E.elim.includes(k)) return this.answer(k);
     if (c.pressed('fire') || (!this.demo && Input.pressed('enter'))) return this.answer(E.sel);
     for (const t of Input.taps) {
+      if (!this.demo && READ_ALOUD.includes(this.grade) && L.boxes.length && t.y >= L.y && t.y < L.y + L.boxes[0].y) { Sound.read(speakable(E.q)); continue; }
       const k = Quiz.hit(L, L.y, t.x, t.y);
       if (k >= 0 && !E.elim.includes(k)) return this.answer(k);
       if (t.x < 90 && t.y > 186) this.useCalc();
@@ -818,7 +822,7 @@ const Play = {
       if (blink(1)) bigText(ctx, 'DEMO PLAY', 2, BANDS.gold, W / 2, 182);
       Font.draw(ctx, 'PRESS ANY KEY', W / 2, 202, '#fff', { align: 'center', outline: '#000' });
     }
-    if (this.paused) { ctx.globalAlpha = .6; rect(ctx, 0, 0, W, H, '#000'); ctx.globalAlpha = 1; bigText(ctx, 'PAUSED', 3, BANDS.blue, W / 2, 90); }
+    if (this.paused) { ctx.globalAlpha = .6; rect(ctx, 0, 0, W, H, '#000'); ctx.globalAlpha = 1; bigText(ctx, 'PAUSED', 3, BANDS.blue, W / 2, 90); Font.draw(ctx, TOUCH ? 'TAP TO GO ON' : 'ESC TO GO ON', W / 2, 124, '#ffffff', { bold: true, align: 'center', outline: '#000' }); }
   },
   drawHud(ctx) {
     const o = { bold: true, outline: '#000' };
@@ -1039,6 +1043,6 @@ const Entry = {
       const ch = K[i], label = ch === '←' ? 'DEL' : ch === '✓' ? 'END' : ch;
       Font.draw(ctx, label, x + 14, y + 3, on ? '#ffffff' : '#a0a8e0', { bold: true, align: 'center' });
     }
-    Font.draw(ctx, 'TYPE, OR ARROWS AND Z.  ENTER WHEN DONE.', W / 2, 206, '#6870a0', { align: 'center' });
+    Font.draw(ctx, TOUCH ? 'TAP THE LETTERS, THEN END.' : 'TYPE, OR ARROWS AND Z.  ENTER WHEN DONE.', W / 2, 206, '#6870a0', { align: 'center' });
   },
 };

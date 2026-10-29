@@ -50,7 +50,7 @@ The key goes in `.secrets/elevenlabs-api-key.txt` (git-ignored) or `ELEVENLABS_A
 | F | Full screen |
 | Esc | Pause |
 
-On a phone, an arcade panel appears under the screen and you tap the answers.
+On a phone or tablet, an arcade panel appears: ◀ ▶ walk, A kicks and picks, B uses a TI-83, and COIN, START, SOUND (mute), PAUSE and, for K to 2nd grade, READ (hear the question again). Tap an answer to pick it, tap the question to hear it again, and tap through the screens between. Held upright, the panel sits under the game; turned sideways, its two halves stand either side of it.
 
 ## The questions
 

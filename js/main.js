@@ -7,11 +7,15 @@
 
   const touch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
   if (touch) document.body.classList.add('touch');
+  const pad = document.getElementById('pad');
   function fit() {
     const land = innerWidth > innerHeight;
     document.body.classList.toggle('land', touch && land);
-    const below = touch ? (land ? 0 : 96) : 24;
-    let s = Math.min(innerWidth / W, (innerHeight - below) / H);
+    // Portrait: the pad sits under the screen. Landscape: its halves stand in the margins either
+    // side, so the screen leaves room for the wider of them.
+    const below = touch ? (land ? 0 : pad.offsetHeight + document.getElementById('turn').offsetHeight + 8) : 24;
+    const side = touch && land ? Math.max(...[...pad.children].map(g => g.offsetWidth)) + 20 : 0;
+    let s = Math.min((innerWidth - side * 2) / W, (innerHeight - below) / H);
     if (s >= 2) s = Math.floor(s);                     // whole-number scaling keeps every pixel square
     const scr = document.getElementById('screen'), crt = document.getElementById('crt');
     scr.style.width = Math.floor(W * s) + 'px'; scr.style.height = Math.floor(H * s) + 'px';
@@ -35,6 +39,14 @@
     Input.taps.push({ x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H });
     Input.any = true;
   });
+  const muteBtn = document.querySelector('#pad [data-act=mute]');
+  let shownMute = null, shownRead = null;
+  function padState() {
+    if (Sound.muted !== shownMute) { shownMute = Sound.muted; muteBtn.textContent = shownMute ? 'MUTED' : 'SOUND'; }
+    // The READ button is there while a grade that reads its questions aloud is being played.
+    const read = Game.scene === Play && !Play.demo && READ_ALOUD.includes(Play.grade);
+    if (read !== shownRead) { shownRead = read; document.body.classList.toggle('read', read); fit(); }
+  }
   for (const b of document.querySelectorAll('#pad button')) {
     const act = b.dataset.act;
     b.addEventListener('pointerdown', e => {
@@ -59,6 +71,7 @@
     }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     Game.draw(ctx);
+    if (touch) padState();
     requestAnimationFrame(frame);
   }
   // The PixelLab atlas is an embedded image: wait for it, then build every sprite.

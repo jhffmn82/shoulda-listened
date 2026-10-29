@@ -7,7 +7,12 @@ const Sound = (() => {
   let ac = null, out, sfx, mus, noise, muted = Store.get('mute', false);
   const waves = {};
 
+  let woke = false;
   function init() {
+    if (!woke && window.speechSynthesis) {
+      woke = true;
+      try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); } catch (e) { /* no voice */ }
+    }
     if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
